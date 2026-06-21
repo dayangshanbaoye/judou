@@ -8,7 +8,10 @@ import {
   type ImportReport,
 } from '../api/importEpub'
 
-const epubPath = ref('')
+const referenceEpubPath =
+  'C:\\Users\\zheng\\Documents\\agentic-engineering\\judou\\fixtures\\epub\\Inside the Box - David Epstein.epub'
+
+const epubPath = ref(referenceEpubPath)
 const activeJobId = ref('')
 const statusMessage = ref('等待选择 EPUB 文件路径')
 const percent = ref(0)
@@ -19,9 +22,35 @@ const unlisteners: Array<() => void> = []
 async function startImport() {
   errorMessage.value = ''
   report.value = null
-  const response = await importEpub(epubPath.value)
-  activeJobId.value = response.job_id
-  statusMessage.value = '导入任务已启动'
+  const normalizedPath = normalizeWindowsPath(epubPath.value)
+
+  if (!normalizedPath) {
+    statusMessage.value = '请先填写 EPUB 文件路径'
+    return
+  }
+
+  epubPath.value = normalizedPath
+  statusMessage.value = '正在请求后端导入…'
+  percent.value = 0
+
+  try {
+    const response = await importEpub(normalizedPath)
+    activeJobId.value = response.job_id
+    statusMessage.value = '导入任务已启动'
+  } catch (error) {
+    statusMessage.value = '导入启动失败'
+    errorMessage.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+function useReferenceBook() {
+  epubPath.value = referenceEpubPath
+  errorMessage.value = ''
+  statusMessage.value = '已填入参考书路径'
+}
+
+function normalizeWindowsPath(path: string): string {
+  return path.trim().replaceAll('\\\\', '\\')
 }
 
 onMounted(async () => {
@@ -71,9 +100,10 @@ onUnmounted(() => {
       />
     </label>
 
-    <button data-test="import-button" type="button" :disabled="!epubPath" @click="startImport">
-      开始导入
-    </button>
+    <div class="import-actions">
+      <button data-test="import-button" type="button" @click="startImport">开始导入</button>
+      <button class="secondary-button" type="button" @click="useReferenceBook">使用参考书路径</button>
+    </div>
 
     <div class="import-status">
       <span>{{ statusMessage }}</span>

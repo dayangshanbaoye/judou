@@ -16,6 +16,15 @@ vi.mock('../api/importEpub', () => ({
 import ImportPanel from '../components/ImportPanel.vue'
 
 describe('ImportPanel', () => {
+  it('shows a clear validation message when path is empty', async () => {
+    const wrapper = mount(ImportPanel)
+
+    await wrapper.get('[data-test="epub-path"]').setValue('')
+    await wrapper.get('[data-test="import-button"]').trigger('click')
+
+    expect(wrapper.text()).toContain('请先填写 EPUB 文件路径')
+  })
+
   it('starts import and renders the returned report', async () => {
     const wrapper = mount(ImportPanel)
 
