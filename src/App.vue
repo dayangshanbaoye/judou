@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ping } from './api/ping'
+import ImportPanel from './components/ImportPanel.vue'
 
 const message = ref('未连接')
 
@@ -18,5 +19,6 @@ async function checkBackend() {
       <button type="button" @click="checkBackend">Ping 后端</button>
       <p class="status">{{ message }}</p>
     </section>
+    <ImportPanel />
   </main>
 </template>

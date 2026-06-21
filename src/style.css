@@ -17,17 +17,21 @@ button {
 
 .app-shell {
   display: grid;
+  gap: var(--sp-6);
   min-height: 100vh;
   place-items: center;
+  padding: var(--sp-8);
 }
 
-.hero {
+.hero,
+.import-panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-lg);
   max-width: 620px;
   padding: var(--sp-12);
+  width: min(620px, calc(100vw - var(--sp-16)));
 }
 
 .eyebrow {
@@ -45,4 +49,64 @@ button {
 
 .status {
   color: var(--text-2);
+}
+
+.import-panel {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.panel-label,
+.path-field span,
+.report-grid dt {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  font-weight: var(--w-semibold);
+}
+
+.import-panel h2 {
+  margin: 0;
+}
+
+.path-field {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.path-field input {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  color: var(--text-1);
+  font: inherit;
+  padding: var(--sp-3);
+}
+
+.import-status {
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.error {
+  color: var(--red-700);
+}
+
+.report-grid {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin: 0;
+}
+
+.report-grid div {
+  background: var(--bg-subtle);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3);
+}
+
+.report-grid dd {
+  font-size: var(--text-lg);
+  font-weight: var(--w-bold);
+  margin: var(--sp-1) 0 0;
 }
