@@ -1,0 +1,48 @@
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+}
+
+button {
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-weight: var(--w-bold);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+}
+
+.hero {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  max-width: 620px;
+  padding: var(--sp-12);
+}
+
+.eyebrow {
+  color: var(--text-brand);
+  font-weight: var(--w-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.05;
+  margin: 0 0 24px;
+}
+
+.status {
+  color: var(--text-2);
+}

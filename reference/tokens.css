@@ -1,0 +1,188 @@
+/* ══════════════════════════════════════════════════════════════
+   句读 (Judou)  ·  Design Tokens  v1.0
+   Palette source : Tailwind Slate (from design system)
+   Brand accent   : Amber  ·  Interactive : Blue
+   Last updated   : 2026-06
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+
+  /* ── Primitives : Slate ──────────────────────────────────── */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  /* ── Primitives : Blue ───────────────────────────────────── */
+  --blue-100:  #dbeafe;
+  --blue-200:  #bfdbfe;
+  --blue-700:  #1d4ed8;
+  --blue-800:  #1e40af;
+
+  /* ── Primitives : Amber (brand / learning) ───────────────── */
+  --amber-100: #fffbeb;
+  --amber-200: #fef3c7;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+
+  /* ── Primitives : Green (mastered / success) ─────────────── */
+  --green-100: #f0fdf4;
+  --green-200: #bbf7d0;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+
+  /* ── Primitives : Red (due / error / not understood) ──────── */
+  --red-100:   #fff1f2;
+  --red-200:   #fecdd3;
+  --red-700:   #be123c;
+
+  /* ── Primitives : Orange (SRS Hard rating) ───────────────── */
+  --orange-100: #fff7ed;
+  --orange-200: #fed7aa;
+  --orange-700: #c2410c;
+
+  /* ── Primitives : Purple (collocation / grammar) ─────────── */
+  --purple-100: #f5f3ff;
+  --purple-200: #ddd6fe;
+  --purple-700: #7c3aed;
+
+  /* ════════════════════════════════════════════════════════════
+     SEMANTIC TOKENS
+     ════════════════════════════════════════════════════════════ */
+
+  /* ── Backgrounds ─────────────────────────────────────────── */
+  --bg-app:        var(--slate-100);   /* Main canvas */
+  --bg-sidebar:    var(--slate-900);   /* Left navigation */
+  --bg-sidebar-hl: var(--slate-800);   /* Sidebar active item bg */
+  --bg-card:       #ffffff;            /* Card / panel surface */
+  --bg-subtle:     var(--slate-50);    /* Alt rows, tinted zones */
+  --bg-dark:       var(--slate-900);   /* Dark section headers */
+
+  /* ── Text ────────────────────────────────────────────────── */
+  --text-1:       var(--slate-900);   /* Primary body */
+  --text-2:       var(--slate-600);   /* Secondary */
+  --text-3:       var(--slate-400);   /* Tertiary / placeholder */
+  --text-inv:     var(--slate-100);   /* On dark background */
+  --text-link:    var(--blue-700);
+  --text-brand:   var(--amber-700);
+
+  /* ── Borders ─────────────────────────────────────────────── */
+  --border:        var(--slate-200);
+  --border-strong: var(--slate-300);
+
+  /* ── Brand : Amber (learning accent) ────────────────────── */
+  --brand:         var(--amber-700);
+  --brand-light:   var(--amber-100);
+  --brand-border:  var(--amber-200);
+  --brand-hover:   var(--amber-600);
+
+  /* ── Interactive : Blue ──────────────────────────────────── */
+  --accent:        var(--blue-700);
+  --accent-light:  var(--blue-100);
+  --accent-hover:  var(--blue-800);
+  --accent-border: var(--blue-200);
+
+  /* ── Sentence Status Left-Border Indicators ──────────────── */
+  --status-unread:     transparent;
+  --status-understood: var(--green-600);   /* green left border */
+  --status-card:       var(--amber-700);   /* amber left border */
+  --status-due:        var(--red-700);     /* red left border */
+
+  /* ── Learning Point Type Tags ────────────────────────────── */
+  --lp-phrase-bg:   var(--blue-100);    /* 短语 phrase */
+  --lp-phrase-fg:   var(--blue-700);
+  --lp-phrase-bd:   var(--blue-200);
+  --lp-word-bg:     var(--green-100);   /* 单词 word */
+  --lp-word-fg:     var(--green-700);
+  --lp-word-bd:     var(--green-200);
+  --lp-pattern-bg:  var(--amber-100);   /* 句型 pattern */
+  --lp-pattern-fg:  var(--amber-700);
+  --lp-pattern-bd:  var(--amber-200);
+  --lp-colloc-bg:   var(--purple-100);  /* 搭配 collocation */
+  --lp-colloc-fg:   var(--purple-700);
+  --lp-colloc-bd:   var(--purple-200);
+
+  /* ── SRS Rating Buttons ──────────────────────────────────── */
+  --rate-again-bg:  var(--red-100);
+  --rate-again-fg:  var(--red-700);
+  --rate-again-bd:  var(--red-200);
+  --rate-hard-bg:   var(--orange-100);
+  --rate-hard-fg:   var(--orange-700);
+  --rate-hard-bd:   var(--orange-200);
+  --rate-good-bg:   var(--blue-100);
+  --rate-good-fg:   var(--blue-700);
+  --rate-good-bd:   var(--blue-200);
+  --rate-easy-bg:   var(--green-100);
+  --rate-easy-fg:   var(--green-700);
+  --rate-easy-bd:   var(--green-200);
+
+  /* ── Typography ──────────────────────────────────────────── */
+  --font-ui:      system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'Cascadia Code', Consolas, 'Courier New', monospace;
+  --font-reading: 'Noto Serif', Georgia, 'Times New Roman', serif;
+
+  /* Type scale */
+  --text-xs:    11px;
+  --text-sm:    12px;
+  --text-base:  13px;
+  --text-md:    15px;
+  --text-lg:    17px;
+  --text-xl:    20px;
+  --text-2xl:   24px;
+  --text-3xl:   30px;
+
+  /* Leading */
+  --leading-tight:   1.3;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.7;
+  --leading-reading: 1.85;   /* For English sentence display */
+
+  /* Weights */
+  --w-normal:   400;
+  --w-medium:   500;
+  --w-semibold: 600;
+  --w-bold:     700;
+
+  /* ── Spacing (4 px base grid) ────────────────────────────── */
+  --sp-1:   4px;
+  --sp-2:   8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ── Radii ───────────────────────────────────────────────── */
+  --r-sm:   4px;
+  --r:      6px;
+  --r-lg:  10px;
+  --r-xl:  14px;
+  --r-pill: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.05);
+
+  /* ── Transitions ─────────────────────────────────────────── */
+  --ease:   cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 100ms;
+  --t-base: 180ms;
+  --t-slow: 300ms;
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  --sidebar-w:    200px;
+  --toc-w:        210px;
+  --card-panel-w: 360px;
+}

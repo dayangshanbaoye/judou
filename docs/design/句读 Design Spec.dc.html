@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f1f5f9; color: #0f172a; font-family: system-ui,-apple-system,'Segoe UI',sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; background:#f1f5f9">
+
+  <!-- ── Doc Header ── -->
+  <div style="background:#0f172a; padding:36px 56px 32px; border-bottom:3px solid #b45309">
+    <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:6px">
+      <span style="font-size:34px; font-weight:800; color:#f1f5f9; letter-spacing:-0.04em; font-family:'Noto Serif',Georgia,serif">句读</span>
+      <span style="font-size:11px; color:#475569; letter-spacing:0.06em; font-weight:600">JUDOU · 英文精读</span>
+    </div>
+    <div style="font-size:20px; font-weight:600; color:#94a3b8; letter-spacing:-0.01em">Design Spec · v1.0</div>
+    <div style="margin-top:12px; display:flex; gap:20px; flex-wrap:wrap">
+      <span style="font-size:12px; color:#334155">Palette: <span style="color:#64748b">Tailwind Slate</span></span>
+      <span style="font-size:12px; color:#334155">Brand: <span style="color:#b45309">Amber (#b45309)</span></span>
+      <span style="font-size:12px; color:#334155">Interactive: <span style="color:#1d4ed8">Blue (#1d4ed8)</span></span>
+      <span style="font-size:12px; color:#334155">Reading font: <span style="color:#64748b">Noto Serif</span></span>
+      <span style="font-size:12px; color:#334155">UI font: <span style="color:#64748b">Segoe UI / system-ui</span></span>
+      <span style="font-size:12px; color:#334155">Mono: <span style="color:#64748b">Cascadia Code</span></span>
+    </div>
+  </div>
+
+  <!-- ── Body ── -->
+  <div style="max-width:1020px; margin:0 auto; padding:52px 40px 80px">
+
+    <!-- ═══ COLOR SYSTEM ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Color System
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <!-- Slate Palette -->
+      <div style="margin-bottom:32px">
+        <div style="font-size:12px; font-weight:600; color:#475569; margin-bottom:10px">Neutral · Slate (base palette)</div>
+        <div style="display:flex; gap:3px; border-radius:6px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="flex:1; background:#f8fafc; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#94a3b8">50</span>
+          </div>
+          <div style="flex:1; background:#f1f5f9; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#94a3b8">100</span>
+          </div>
+          <div style="flex:1; background:#e2e8f0; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#94a3b8">200</span>
+          </div>
+          <div style="flex:1; background:#cbd5e1; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#94a3b8">300</span>
+          </div>
+          <div style="flex:1; background:#94a3b8; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#fff">400</span>
+          </div>
+          <div style="flex:1; background:#64748b; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#fff">500</span>
+          </div>
+          <div style="flex:1; background:#475569; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#fff">600</span>
+          </div>
+          <div style="flex:1; background:#334155; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#fff">700</span>
+          </div>
+          <div style="flex:1; background:#1e293b; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#64748b">800</span>
+          </div>
+          <div style="flex:1; background:#0f172a; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:5px">
+            <span style="font-size:9px; color:#475569">900</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Semantic color groups -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:16px">
+
+        <!-- Amber (brand) -->
+        <div style="background:#fff; border-radius:6px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="display:flex; height:64px">
+            <div style="flex:1; background:#fffbeb"></div>
+            <div style="flex:1; background:#fef3c7"></div>
+            <div style="flex:1; background:#d97706"></div>
+            <div style="flex:1; background:#b45309"></div>
+          </div>
+          <div style="padding:10px 12px">
+            <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:2px">Amber · Brand / Learning</div>
+            <div style="font-size:10px; color:#94a3b8">brand, learning point highlight, CTA secondary</div>
+          </div>
+        </div>
+
+        <!-- Blue (interactive) -->
+        <div style="background:#fff; border-radius:6px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="display:flex; height:64px">
+            <div style="flex:1; background:#dbeafe"></div>
+            <div style="flex:1; background:#bfdbfe"></div>
+            <div style="flex:1; background:#1d4ed8"></div>
+            <div style="flex:1; background:#1e40af"></div>
+          </div>
+          <div style="padding:10px 12px">
+            <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:2px">Blue · Interactive</div>
+            <div style="font-size:10px; color:#94a3b8">primary CTA, TOC active, progress bar, Good rating</div>
+          </div>
+        </div>
+
+        <!-- Green (mastered) -->
+        <div style="background:#fff; border-radius:6px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="display:flex; height:64px">
+            <div style="flex:1; background:#f0fdf4"></div>
+            <div style="flex:1; background:#bbf7d0"></div>
+            <div style="flex:1; background:#16a34a"></div>
+            <div style="flex:1; background:#15803d"></div>
+          </div>
+          <div style="padding:10px 12px">
+            <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:2px">Green · Mastered / Success</div>
+            <div style="font-size:10px; color:#94a3b8">understood status, promoted LP, Easy rating</div>
+          </div>
+        </div>
+
+        <!-- Red (due/error) -->
+        <div style="background:#fff; border-radius:6px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="display:flex; height:64px">
+            <div style="flex:1; background:#fff1f2"></div>
+            <div style="flex:1; background:#fecdd3"></div>
+            <div style="flex:1; background:#be123c"></div>
+            <div style="flex:1; background:#9f1239"></div>
+          </div>
+          <div style="padding:10px 12px">
+            <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:2px">Red · Due / Not Understood</div>
+            <div style="font-size:10px; color:#94a3b8">due badge, Again rating, flagged status</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══ TYPOGRAPHY ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Typography
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px">
+
+        <!-- UI type scale -->
+        <div style="background:#fff; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px">UI · system-ui / Segoe UI</div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:30px; font-weight:700; color:#0f172a; line-height:1; flex:1">句读 Judou</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">30px bold</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:20px; font-weight:700; color:#0f172a; line-height:1.2; flex:1">Page Title</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">20px bold</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:17px; font-weight:700; color:#0f172a; flex:1">Section Header</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">17px bold</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:15px; font-weight:500; color:#0f172a; flex:1">Primary UI text</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">15px medium</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:13px; color:#0f172a; flex:1">Body / base size</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">13px regular</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:12px; color:#475569; flex:1">Secondary text</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">12px / slate-600</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:11px; color:#64748b; flex:1">Caption / metadata</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">11px / slate-500</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <span style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; flex:1">SECTION LABEL</span>
+              <span style="font-size:10px; color:#94a3b8; white-space:nowrap">10px upper</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reading + Mono -->
+        <div style="display:flex; flex-direction:column; gap:16px">
+
+          <div style="background:#fff; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.06); flex:1">
+            <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px">Reading · Noto Serif</div>
+            <p style="font-family:'Noto Serif',Georgia,serif; font-size:16px; line-height:1.85; color:#0f172a; margin-bottom:12px; text-wrap:pretty">The world is full of phenomena that go unnoticed—not because they are hidden, but because we have not learned to look.</p>
+            <p style="font-family:'Noto Serif',Georgia,serif; font-size:13px; font-style:italic; line-height:1.75; color:#475569">Used for all English sentence display. 16px / line-height 1.85 in reader; 14px in card header.</p>
+          </div>
+
+          <div style="background:#fff; border-radius:8px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.06)">
+            <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px">Mono · Cascadia Code</div>
+            <code style="font-family:'Cascadia Code',Consolas,monospace; font-size:13px; font-weight:600; color:#0f172a; background:#f1f5f9; padding:2px 7px; border-radius:3px; display:inline-block; margin-bottom:6px">go unnoticed</code>
+            <div style="font-size:11px; color:#64748b">Used for learning point surface forms and vocab tokens.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SENTENCE STATUS ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Sentence Status · Left-Border Indicator
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; max-width:680px">
+
+        <!-- Unread -->
+        <div style="padding:12px 14px 12px 18px; border-left:3px solid transparent; border-radius:0 5px 5px 0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="display:flex; align-items:center; gap:10px">
+            <p style="font-family:'Noto Serif',Georgia,serif; font-size:15px; line-height:1.7; color:#0f172a; flex:1">Every piece of writing is built on the premise that attention is a gift.</p>
+            <span style="font-size:10px; color:#94a3b8; white-space:nowrap; flex:none">未读 · transparent border</span>
+          </div>
+        </div>
+
+        <!-- Card (selected + amber border) -->
+        <div style="padding:12px 14px 12px 18px; border-left:3px solid #b45309; border-radius:0 5px 5px 0; background:#fffbeb; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="display:flex; align-items:center; gap:10px">
+            <p style="font-family:'Noto Serif',Georgia,serif; font-size:15px; line-height:1.7; color:#0f172a; flex:1">The world is full of phenomena that go unnoticed—not because they are hidden, but because we have not learned to look.</p>
+            <span style="font-size:10px; color:#b45309; white-space:nowrap; flex:none; font-weight:600">有卡片 · #b45309</span>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:10px">
+            <button style="font-size:11px; font-weight:600; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:4px; padding:4px 10px; cursor:default">✓ 读懂了</button>
+            <button style="font-size:11px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:4px 10px; cursor:default">？没读懂 → 建卡</button>
+          </div>
+        </div>
+
+        <!-- Understood (green) -->
+        <div style="padding:12px 14px 12px 18px; border-left:3px solid #16a34a; border-radius:0 5px 5px 0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="display:flex; align-items:center; gap:10px">
+            <p style="font-family:'Noto Serif',Georgia,serif; font-size:15px; line-height:1.7; color:#0f172a; flex:1">The amateur glances; the expert perceives.</p>
+            <span style="font-size:10px; color:#15803d; white-space:nowrap; flex:none; font-weight:600">已读懂 · #16a34a</span>
+          </div>
+        </div>
+
+        <!-- Due (red) -->
+        <div style="padding:12px 14px 12px 18px; border-left:3px solid #be123c; border-radius:0 5px 5px 0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="display:flex; align-items:center; gap:10px">
+            <p style="font-family:'Noto Serif',Georgia,serif; font-size:15px; line-height:1.7; color:#0f172a; flex:1">Attention is a resource; a person has only so much of it.</p>
+            <span style="font-size:10px; color:#be123c; white-space:nowrap; flex:none; font-weight:600">复习中 · #be123c</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ LEARNING POINT TAGS ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Learning Point Type Tags
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px">
+        <span style="font-size:10px; padding:3px 9px; border-radius:4px; background:#dbeafe; color:#1d4ed8; font-weight:700; border:1px solid #bfdbfe">短语 phrase</span>
+        <span style="font-size:10px; padding:3px 9px; border-radius:4px; background:#f0fdf4; color:#15803d; font-weight:700; border:1px solid #bbf7d0">单词 word</span>
+        <span style="font-size:10px; padding:3px 9px; border-radius:4px; background:#fffbeb; color:#b45309; font-weight:700; border:1px solid #fef3c7">句型 pattern</span>
+        <span style="font-size:10px; padding:3px 9px; border-radius:4px; background:#f5f3ff; color:#7c3aed; font-weight:700; border:1px solid #ddd6fe">搭配 collocation</span>
+        <span style="font-size:10px; padding:3px 9px; border-radius:4px; background:#fffbeb; color:#b45309; font-weight:700; border:1px solid #fef3c7">造句 created</span>
+      </div>
+
+      <!-- Sample LP row -->
+      <div style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden; max-width:680px">
+        <div style="padding:10px 16px 5px; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em">学习点 <span style="background:#f1f5f9; color:#64748b; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:4px">3</span></div>
+
+        <div style="border-top:1px solid #f8fafc; padding:9px 16px; display:flex; align-items:flex-start; gap:8px">
+          <div style="flex:1">
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px">
+              <span style="font-size:9px; padding:1px 5px; border-radius:3px; background:#dbeafe; color:#1d4ed8; font-weight:700">短语</span>
+              <code style="font-size:12px; font-weight:700; font-family:'Cascadia Code',Consolas,monospace; color:#0f172a">go unnoticed</code>
+            </div>
+            <div style="font-size:11px; color:#64748b">不被察觉，被忽视</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px; flex:none">
+            <button style="font-size:10px; font-weight:600; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:4px; padding:3px 8px; cursor:default">✓ 已加入</button>
+            <button style="font-size:10px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:3px 8px; cursor:default">造句 →</button>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #f8fafc; padding:9px 16px; display:flex; align-items:flex-start; gap:8px">
+          <div style="flex:1">
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px">
+              <span style="font-size:9px; padding:1px 5px; border-radius:3px; background:#f0fdf4; color:#15803d; font-weight:700">单词</span>
+              <code style="font-size:12px; font-weight:700; font-family:'Cascadia Code',Consolas,monospace; color:#0f172a">phenomena</code>
+            </div>
+            <div style="font-size:11px; color:#64748b">phenomenon 的复数；现象</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px; flex:none">
+            <button style="font-size:10px; font-weight:600; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; padding:3px 8px; cursor:default">加入复习</button>
+            <button style="font-size:10px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:3px 8px; cursor:default">造句 →</button>
+          </div>
+        </div>
+
+        <!-- Create panel open -->
+        <div style="border-top:1px solid #f8fafc; padding:9px 16px; display:flex; align-items:flex-start; gap:8px">
+          <div style="flex:1">
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px">
+              <span style="font-size:9px; padding:1px 5px; border-radius:3px; background:#fffbeb; color:#b45309; font-weight:700">句型</span>
+              <code style="font-size:12px; font-weight:700; font-family:'Cascadia Code',Consolas,monospace; color:#0f172a">not because…but because</code>
+            </div>
+            <div style="font-size:11px; color:#64748b">并列否定句型</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px; flex:none">
+            <button style="font-size:10px; font-weight:600; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:4px; padding:3px 8px; cursor:default">✓ 已加入</button>
+            <button style="font-size:10px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:3px 8px; cursor:default">造句 →</button>
+          </div>
+        </div>
+
+        <!-- Create panel expanded -->
+        <div style="margin:0 12px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; font-size:12px">
+          <div style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px">你的中文句子</div>
+          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:8px 10px; color:#0f172a; font-size:13px; margin-bottom:8px">他来这里不是因为工作，而是因为他爱这座城市。</div>
+          <div style="text-align:center; color:#b45309; font-size:11px; font-weight:500; margin:6px 0">↓ 用「not because…but because」呈现</div>
+          <div style="background:#fff; border:1.5px solid #b45309; border-radius:4px; padding:9px 11px; font-family:'Noto Serif',Georgia,serif; font-size:14px; color:#0f172a; margin-bottom:6px; line-height:1.65">He came here not because of work, but because he loves this city.</div>
+          <div style="font-size:11px; color:#15803d; margin-bottom:10px; display:flex; gap:4px; align-items:flex-start">
+            <span>✓</span><span>并列否定结构先排除误解，再给出真因，比单纯陈述更有说服力。</span>
+          </div>
+          <div style="display:flex; gap:5px">
+            <button style="font-size:11px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; padding:4px 9px; cursor:default">再给变体</button>
+            <button style="font-size:11px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; padding:4px 9px; cursor:default">🔊 生成音频</button>
+            <div style="flex:1"></div>
+            <button style="font-size:11px; font-weight:600; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:4px; padding:4px 9px; cursor:default">加入复习 ✓</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SRS RATING BUTTONS ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        SRS Rating Buttons (FSRS-6)
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="display:flex; gap:10px; max-width:520px">
+        <div style="flex:1; background:#fff; border:1.5px solid #fecdd3; color:#be123c; border-radius:7px; padding:14px 4px; font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <span>Again</span><span style="font-size:10px; font-weight:400; color:#f87171">&lt;1天</span>
+        </div>
+        <div style="flex:1; background:#fff; border:1.5px solid #fed7aa; color:#c2410c; border-radius:7px; padding:14px 4px; font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <span>Hard</span><span style="font-size:10px; font-weight:400; color:#fb923c">1天</span>
+        </div>
+        <div style="flex:1; background:#fff; border:1.5px solid #bfdbfe; color:#1d4ed8; border-radius:7px; padding:14px 4px; font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <span>Good</span><span style="font-size:10px; font-weight:400; color:#60a5fa">3天</span>
+        </div>
+        <div style="flex:1; background:#fff; border:1.5px solid #bbf7d0; color:#15803d; border-radius:7px; padding:14px 4px; font-size:13px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <span>Easy</span><span style="font-size:10px; font-weight:400; color:#4ade80">7天</span>
+        </div>
+      </div>
+
+      <div style="font-size:12px; color:#64748b; margin-top:12px; line-height:1.6">
+        区间由 FSRS-6 算法根据历史复习记录自动计算（示例值仅供原型展示）。每个 Deck 可配置目标保持率 <code style="font-family:'Cascadia Code',Consolas,monospace; font-size:11px; background:#f1f5f9; padding:0 5px; border-radius:2px">desired_retention</code>（默认 0.90）。
+      </div>
+    </section>
+
+    <!-- ═══ LAYOUT ANATOMY ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Layout Anatomy · Reader (3-column)
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden">
+        <!-- Top bar -->
+        <div style="background:#f8fafc; border-bottom:1px solid #e2e8f0; height:36px; display:flex; align-items:center; padding:0 14px; gap:10px">
+          <span style="font-size:11px; color:#475569">← 书库</span>
+          <span style="color:#e2e8f0; font-size:11px">|</span>
+          <span style="font-size:11px; color:#94a3b8">The Art of Noticing › Ch. 1 › Paying Attention</span>
+        </div>
+        <!-- 3-col mini layout -->
+        <div style="display:flex; height:180px">
+          <div style="width:80px; flex:none; border-right:1px solid #e2e8f0; background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center">
+            <div style="font-size:10px; color:#94a3b8; font-weight:700; text-align:center; line-height:1.4">TOC<br/>目录树</div>
+            <div style="font-size:9px; color:#cbd5e1; margin-top:4px">210px</div>
+          </div>
+          <div style="flex:1; background:#f1f5f9; display:flex; align-items:center; justify-content:center">
+            <div style="text-align:center">
+              <div style="font-size:10px; color:#94a3b8; font-weight:700">句子流</div>
+              <div style="font-size:9px; color:#cbd5e1; margin-top:2px">flex: 1 · min-width 0</div>
+              <div style="font-size:9px; color:#cbd5e1">Noto Serif 15px / lh 1.85</div>
+            </div>
+          </div>
+          <div style="width:100px; flex:none; border-left:1px solid #e2e8f0; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center">
+            <div style="font-size:10px; color:#94a3b8; font-weight:700; text-align:center; line-height:1.4">卡片面板<br/>Card Panel</div>
+            <div style="font-size:9px; color:#cbd5e1; margin-top:4px">360px</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:16px">
+        <div style="background:#fff; border-radius:6px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:4px">Sidebar</div>
+          <div style="font-size:11px; color:#64748b; line-height:1.6">196px fixed · Slate-900 bg · Amber active indicator · Nav items + Settings</div>
+        </div>
+        <div style="background:#fff; border-radius:6px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:4px">TOC Panel</div>
+          <div style="font-size:11px; color:#64748b; line-height:1.6">210px fixed · Slate-50 bg · Blue active node · Type badges (正文/序言)</div>
+        </div>
+        <div style="background:#fff; border-radius:6px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.04)">
+          <div style="font-size:11px; font-weight:700; color:#0f172a; margin-bottom:4px">Card Panel</div>
+          <div style="font-size:11px; color:#64748b; line-height:1.6">360px fixed · White bg · Amber header border · 4 fixed sections + LP list + Create</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SPACING & RADIUS ═══ -->
+    <section style="margin-bottom:60px">
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Spacing · Radius · Shadow
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="display:flex; gap:24px; flex-wrap:wrap">
+        <!-- Spacing -->
+        <div>
+          <div style="font-size:11px; font-weight:600; color:#475569; margin-bottom:10px">4px Base Grid</div>
+          <div style="display:flex; align-items:flex-end; gap:6px">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:4px; height:4px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-1</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:8px; height:8px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-2</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:12px; height:12px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-3</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:16px; height:16px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-4</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:24px; height:24px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-6</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:32px; height:32px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-8</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px"><div style="width:48px; height:48px; background:#1d4ed8; border-radius:1px"></div><span style="font-size:9px; color:#94a3b8">sp-12</span></div>
+          </div>
+        </div>
+
+        <!-- Radius -->
+        <div>
+          <div style="font-size:11px; font-weight:600; color:#475569; margin-bottom:10px">Radii</div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
+              <div style="width:48px; height:32px; background:#1d4ed8; border-radius:4px"></div>
+              <span style="font-size:9px; color:#94a3b8">r-sm 4px</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
+              <div style="width:48px; height:32px; background:#1d4ed8; border-radius:6px"></div>
+              <span style="font-size:9px; color:#94a3b8">r 6px</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
+              <div style="width:48px; height:32px; background:#1d4ed8; border-radius:10px"></div>
+              <span style="font-size:9px; color:#94a3b8">r-lg 10px</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
+              <div style="width:48px; height:24px; background:#1d4ed8; border-radius:9999px"></div>
+              <span style="font-size:9px; color:#94a3b8">pill</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ DESIGN PRINCIPLES ═══ -->
+    <section>
+      <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:24px; display:flex; align-items:center; gap:10px">
+        Design Principles
+        <div style="flex:1; height:1px; background:#e2e8f0"></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px">
+        <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); border-top:3px solid #b45309">
+          <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px">本地优先</div>
+          <div style="font-size:12px; color:#64748b; line-height:1.65">所有数据（EPUB、断句、卡片、音频）存本地 SQLite。仅「主动送去讲解/合成」的文本片段出网。</div>
+        </div>
+        <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); border-top:3px solid #1d4ed8">
+          <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px">可追溯</div>
+          <div style="font-size:12px; color:#64748b; line-height:1.65">任意句子都能回答「属于哪章哪节哪段」。面包屑 + 硬外键约束保证追溯链不断裂。</div>
+        </div>
+        <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); border-top:3px solid #15803d">
+          <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px">结构化输出</div>
+          <div style="font-size:12px; color:#64748b; line-height:1.65">LLM 讲解固定四段 JSON：语法 / 难点词 / 翻译 / 通俗表达。可存储、可搜索，不做自由文本。</div>
+        </div>
+        <div style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.06); border-top:3px solid #7c3aed">
+          <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px">ICAP 闭环</div>
+          <div style="font-size:12px; color:#64748b; line-height:1.65">读（P）→ 标记/讲解（A）→ 造句（C）→ 复习（C）。每功能对应 ICAP 层级，不做「只读不练」。</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1024,&quot;height&quot;:1400}}">
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

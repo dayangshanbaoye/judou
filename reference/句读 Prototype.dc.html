@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #0f172a; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    button { font-family: inherit; }
+  </style>
+</helmet>
+
+<!-- App Root -->
+<div style="display:flex; height:100vh; overflow:hidden; font-family:system-ui,-apple-system,'Segoe UI',sans-serif; font-size:13px; line-height:1.5; color:#0f172a">
+
+  <!-- ━━━ SIDEBAR ━━━ -->
+  <aside style="width:196px; flex:none; background:#0f172a; display:flex; flex-direction:column; border-right:1px solid rgba(255,255,255,.05)">
+
+    <!-- Logo -->
+    <div style="padding:20px 16px 14px; border-bottom:1px solid rgba(255,255,255,.06); flex:none">
+      <div style="font-size:24px; font-weight:800; color:#f1f5f9; letter-spacing:-0.04em; line-height:1; font-family:'Noto Serif',Georgia,serif">句读</div>
+      <div style="font-size:10px; color:#334155; margin-top:5px; letter-spacing:0.06em; font-weight:500">JUDOU · 英文精读</div>
+    </div>
+
+    <!-- Nav -->
+    <nav style="flex:1; padding:8px; display:flex; flex-direction:column; gap:1px; overflow-y:auto">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="5">
+        <div onClick="{{ item.handler }}" style="display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:5px; cursor:pointer; border-left:2px solid {{ item.borderColor }}; background:{{ item.bgColor }}; color:{{ item.textColor }}; transition:background 120ms">
+          <span style="font-size:15px; line-height:1; width:18px; text-align:center; flex:none; opacity:0.85">{{ item.icon }}</span>
+          <span style="font-size:13px; font-weight:{{ item.fw }}; flex:1; min-width:0">{{ item.label }}</span>
+          <sc-if value="{{ item.hasBadge }}" hint-placeholder-val="{{ false }}">
+            <span style="background:#b45309; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; flex:none; min-width:18px; text-align:center">{{ item.badge }}</span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </nav>
+
+    <!-- Settings -->
+    <div style="padding:8px; border-top:1px solid rgba(255,255,255,.06); flex:none">
+      <div onClick="{{ goSettings }}" style="display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:5px; cursor:pointer; color:#475569; border-left:2px solid transparent">
+        <span style="font-size:15px; width:18px; text-align:center; opacity:0.8">⚙</span>
+        <span style="font-size:13px">设置</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ━━━ MAIN ━━━ -->
+  <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; background:#f1f5f9">
+
+    <!-- ═══ BOOKSHELF ═══ -->
+    <sc-if value="{{ isShelf }}" hint-placeholder-val="{{ true }}">
+
+      <!-- Top bar -->
+      <div style="background:#fff; border-bottom:1px solid #e2e8f0; padding:14px 24px; flex:none; display:flex; align-items:center; gap:12px">
+        <div style="flex:1">
+          <h1 style="font-size:17px; font-weight:700; color:#0f172a; letter-spacing:-0.02em">我的书库</h1>
+          <div style="font-size:12px; color:#64748b; margin-top:1px">{{ bookCount }} 本书 · 本地优先</div>
+        </div>
+        <div onClick="{{ goReview }}" style="display:flex; align-items:center; gap:6px; background:#fffbeb; border:1px solid #fef3c7; border-radius:6px; padding:7px 12px; cursor:pointer">
+          <span style="color:#b45309; font-size:14px; line-height:1">↺</span>
+          <span style="font-size:12px; font-weight:600; color:#b45309">今日待复习 {{ todayReviewCount }} 项</span>
+          <span style="font-size:11px; color:#d97706">→</span>
+        </div>
+        <button onClick="{{ importBook }}" style="display:flex; align-items:center; gap:6px; background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer">
+          <span>＋</span><span>导入 EPUB</span>
+        </button>
+      </div>
+
+      <!-- Book grid -->
+      <div style="flex:1; overflow-y:auto; padding:24px">
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:18px; max-width:1060px">
+
+          <sc-for list="{{ books }}" as="book" hint-placeholder-count="3">
+            <div onClick="{{ book.openReader }}" style="background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.05); cursor:pointer; overflow:hidden">
+              <!-- Cover -->
+              <div style="height:168px; background:{{ book.coverColor }}; position:relative; display:flex; align-items:flex-end">
+                <div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 25%, rgba(0,0,0,.68)); pointer-events:none"></div>
+                <div style="position:relative; z-index:1; padding:13px">
+                  <div style="font-size:14px; font-weight:700; color:#fff; line-height:1.35; text-wrap:pretty; font-family:'Noto Serif',Georgia,serif">{{ book.title }}</div>
+                  <div style="font-size:11px; color:rgba(255,255,255,.5); margin-top:3px">{{ book.author }}</div>
+                </div>
+                <sc-if value="{{ book.hasDue }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; top:10px; right:10px; z-index:2; background:#be123c; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px">{{ book.dueText }}</div>
+                </sc-if>
+              </div>
+              <!-- Footer -->
+              <div style="padding:11px 12px">
+                <div style="background:#f1f5f9; border-radius:2px; height:3px; margin-bottom:9px; overflow:hidden">
+                  <div style="height:100%; background:#1d4ed8; border-radius:2px; width:{{ book.progressPct }}"></div>
+                </div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap">
+                  <span style="font-size:10px; background:#f1f5f9; color:#475569; padding:2px 7px; border-radius:3px; font-weight:500">{{ book.totalSentences }} 句</span>
+                  <span style="font-size:10px; background:#f0fdf4; color:#15803d; padding:2px 7px; border-radius:3px; font-weight:500">{{ book.cards }} 卡片</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+
+          <!-- Import CTA -->
+          <div onClick="{{ importBook }}" style="border:2px dashed #e2e8f0; border-radius:8px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:222px; gap:8px; color:#94a3b8; background:#f8fafc">
+            <span style="font-size:32px; font-weight:200; line-height:1; color:#cbd5e1">＋</span>
+            <span style="font-size:12px; font-weight:500">导入 EPUB</span>
+            <span style="font-size:11px; color:#cbd5e1">拖入或点击选择</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═══ READER ═══ -->
+    <sc-if value="{{ isReader }}" hint-placeholder-val="{{ false }}">
+
+      <!-- Top bar -->
+      <div style="background:#fff; border-bottom:1px solid #e2e8f0; height:42px; flex:none; display:flex; align-items:center; padding:0 14px; gap:10px">
+        <button onClick="{{ goBack }}" style="display:flex; align-items:center; gap:4px; background:none; border:none; color:#475569; cursor:pointer; font-size:12px; padding:4px 7px; border-radius:4px">← 书库</button>
+        <span style="color:#e2e8f0">|</span>
+        <div style="font-size:12px; color:#94a3b8; display:flex; align-items:center; gap:5px; flex:1; min-width:0; overflow:hidden; white-space:nowrap">
+          <span style="color:#475569; font-weight:600">The Art of Noticing</span>
+          <span>›</span><span>Ch. 1</span>
+          <span>›</span><span style="color:#475569">Paying Attention</span>
+        </div>
+        <div style="display:flex; background:#f1f5f9; border-radius:5px; padding:2px; gap:1px; flex:none">
+          <button style="background:#fff; border:none; border-radius:4px; padding:4px 11px; font-size:11px; font-weight:600; color:#0f172a; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.06)">连续阅读</button>
+          <button onClick="{{ goClose }}" style="background:transparent; border:none; border-radius:4px; padding:4px 11px; font-size:11px; font-weight:500; color:#64748b; cursor:pointer">逐句精读</button>
+        </div>
+      </div>
+
+      <!-- 3-column -->
+      <div style="flex:1; display:flex; overflow:hidden">
+
+        <!-- TOC -->
+        <div style="width:210px; flex:none; border-right:1px solid #e2e8f0; background:#f8fafc; overflow-y:auto; display:flex; flex-direction:column">
+          <div style="padding:10px 14px 6px; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; flex:none">目录</div>
+          <sc-for list="{{ tocTree }}" as="node" hint-placeholder-count="7">
+            <div style="display:flex; align-items:center; padding:{{ node.padding }}; gap:5px; cursor:pointer; border-left:2px solid {{ node.leftBorder }}; background:{{ node.bg }}">
+              <span style="flex:1; font-size:12px; font-weight:{{ node.fw }}; color:{{ node.textColor }}; line-height:1.4; text-wrap:pretty">{{ node.title }}</span>
+              <span style="font-size:9px; padding:1px 5px; border-radius:3px; background:{{ node.tagBg }}; color:{{ node.tagColor }}; flex:none; white-space:nowrap">{{ node.type }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Sentence flow -->
+        <div style="flex:1; overflow-y:auto; padding:28px 36px; min-width:0">
+          <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px">§ 段落 1</div>
+
+          <sc-for list="{{ sentences }}" as="s" hint-placeholder-count="6">
+            <div>
+              <sc-if value="{{ s.showParaBreak }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; margin:22px 0 14px; padding-top:18px; border-top:1px solid #e2e8f0">§ 段落 {{ s.paraNum }}</div>
+              </sc-if>
+
+              <div onClick="{{ s.select }}" style="margin-bottom:3px; padding:12px 14px 12px 18px; border-left:3px solid {{ s.statusColor }}; border-radius:0 5px 5px 0; background:{{ s.bgColor }}; cursor:pointer; transition:background 100ms">
+                <p style="font-family:'Noto Serif',Georgia,serif; font-size:15px; line-height:1.85; color:#0f172a; margin:0; text-wrap:pretty">{{ s.text }}</p>
+
+                <sc-if value="{{ s.isSelected }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:10px">
+                    <button onClick="{{ s.markUnderstood }}" style="font-size:11px; font-weight:600; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:4px; padding:4px 10px; cursor:pointer">✓ 读懂了</button>
+                    <button onClick="{{ s.markCard }}" style="font-size:11px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:4px 10px; cursor:pointer">？没读懂 → 建卡</button>
+                    <div style="flex:1"></div>
+                    <span style="font-size:10px; color:#94a3b8; font-weight:500">{{ s.statusLabel }}</span>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Card panel -->
+        <div style="width:360px; flex:none; border-left:1px solid #e2e8f0; background:#fff; display:flex; flex-direction:column; overflow:hidden">
+
+          <!-- Empty -->
+          <sc-if value="{{ isCardEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; gap:12px; text-align:center">
+              <div style="font-size:48px; opacity:0.15; line-height:1; font-family:'Noto Serif',Georgia,serif; color:#0f172a">"</div>
+              <div style="font-size:13px; line-height:1.75; color:#cbd5e1">点击句子查看状态<br/>「没读懂 → 建卡」<br/>自动生成四段式讲解</div>
+            </div>
+          </sc-if>
+
+          <!-- Card loaded -->
+          <sc-if value="{{ isCardLoaded }}" hint-placeholder-val="{{ false }}">
+
+            <!-- Card header -->
+            <div style="flex:none; padding:14px 16px; border-bottom:1px solid #f1f5f9; border-left:3px solid #b45309; background:#fffbeb">
+              <div style="font-size:10px; color:#b45309; font-weight:600; letter-spacing:0.03em; margin-bottom:6px">Ch.1 › Paying Attention</div>
+              <p style="font-family:'Noto Serif',Georgia,serif; font-size:14px; line-height:1.75; color:#0f172a; margin:0">{{ selectedSentenceText }}</p>
+            </div>
+
+            <!-- Scrollable body -->
+            <div style="flex:1; overflow-y:auto">
+
+              <!-- Grammar -->
+              <div style="border-bottom:1px solid #f1f5f9">
+                <div style="padding:10px 16px 5px; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em">语法分析</div>
+                <div style="padding:0 16px 12px; font-size:12px; line-height:1.75; color:#334155">{{ cardGrammar }}</div>
+              </div>
+
+              <!-- Phrases -->
+              <div style="border-bottom:1px solid #f1f5f9">
+                <div style="padding:10px 16px 5px; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em">难点短语与词</div>
+                <sc-for list="{{ cardPhrases }}" as="ph" hint-placeholder-count="3">
+                  <div style="padding:8px 16px; border-top:1px solid #f8fafc">
+                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px">
+                      <code style="font-family:'Cascadia Code',Consolas,monospace; font-size:12px; font-weight:600; color:#0f172a; background:#f1f5f9; padding:1px 6px; border-radius:3px">{{ ph.surface }}</code>
+                      <span style="font-size:9px; padding:1px 5px; border-radius:3px; background:{{ ph.tagBg }}; color:{{ ph.tagColor }}; font-weight:600">{{ ph.type }}</span>
+                    </div>
+                    <div style="font-size:12px; color:#15803d; font-weight:600; margin-bottom:2px">{{ ph.meaning }}</div>
+                    <div style="font-size:11px; color:#64748b; line-height:1.65">{{ ph.note }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <!-- Translation -->
+              <div style="border-bottom:1px solid #f1f5f9">
+                <div style="padding:10px 16px 5px; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em">整句翻译</div>
+                <div style="padding:0 16px 12px; font-size:13px; line-height:1.75; color:#334155">{{ cardTranslation }}</div>
+              </div>
+
+              <!-- Plain rephrase -->
+              <div style="border-bottom:1px solid #f1f5f9">
+                <div style="padding:10px 16px 5px; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em">通俗表达</div>
+                <div style="padding:0 16px 12px; font-family:'Noto Serif',Georgia,serif; font-size:13px; font-style:italic; line-height:1.75; color:#475569">{{ cardRephrase }}</div>
+              </div>
+
+              <!-- Learning Points -->
+              <div style="border-bottom:1px solid #f1f5f9">
+                <div style="padding:10px 16px 5px; display:flex; align-items:center; gap:6px">
+                  <span style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em">学习点</span>
+                  <span style="background:#f1f5f9; color:#64748b; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px">{{ lpCount }}</span>
+                </div>
+
+                <sc-for list="{{ learningPoints }}" as="lp" hint-placeholder-count="3">
+                  <div style="border-top:1px solid #f8fafc">
+                    <div style="padding:8px 16px; display:flex; align-items:flex-start; gap:8px">
+                      <div style="flex:1; min-width:0">
+                        <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px; flex-wrap:wrap">
+                          <span style="font-size:9px; padding:1px 5px; border-radius:3px; background:{{ lp.typeBg }}; color:{{ lp.typeColor }}; font-weight:700; white-space:nowrap">{{ lp.type }}</span>
+                          <code style="font-size:12px; font-weight:700; color:#0f172a; font-family:'Cascadia Code',Consolas,monospace">{{ lp.surface }}</code>
+                        </div>
+                        <div style="font-size:11px; color:#64748b">{{ lp.definition }}</div>
+                      </div>
+                      <div style="display:flex; flex-direction:column; gap:3px; flex:none">
+                        <button onClick="{{ lp.addToReview }}" style="font-size:10px; font-weight:600; background:{{ lp.reviewBg }}; color:{{ lp.reviewColor }}; border:1px solid {{ lp.reviewBd }}; border-radius:4px; padding:3px 8px; cursor:pointer; white-space:nowrap">{{ lp.reviewLabel }}</button>
+                        <button onClick="{{ lp.openCreate }}" style="font-size:10px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:3px 8px; cursor:pointer">造句 →</button>
+                      </div>
+                    </div>
+
+                    <!-- Create panel -->
+                    <sc-if value="{{ lp.createOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin:0 12px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; font-size:12px">
+                        <div style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px">你的中文句子</div>
+                        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:8px 10px; color:#0f172a; font-size:13px; margin-bottom:8px; line-height:1.5">{{ lp.createInput }}</div>
+                        <div style="text-align:center; color:#b45309; font-size:11px; font-weight:500; margin:6px 0">↓ 用「{{ lp.surface }}」呈现</div>
+                        <div style="background:#fff; border:1.5px solid #b45309; border-radius:4px; padding:9px 11px; font-family:'Noto Serif',Georgia,serif; font-size:14px; color:#0f172a; margin-bottom:6px; line-height:1.65">{{ lp.createOutput }}</div>
+                        <div style="font-size:11px; color:#15803d; margin-bottom:10px; display:flex; gap:4px; align-items:flex-start">
+                          <span>✓</span><span>{{ lp.createNote }}</span>
+                        </div>
+                        <div style="display:flex; gap:5px">
+                          <button style="font-size:11px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; padding:4px 9px; cursor:pointer">再给变体</button>
+                          <button style="font-size:11px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; padding:4px 9px; cursor:pointer">🔊 生成音频</button>
+                          <div style="flex:1"></div>
+                          <button style="font-size:11px; font-weight:600; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:4px; padding:4px 9px; cursor:pointer">加入复习 ✓</button>
+                        </div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+
+              <!-- Follow-up thread -->
+              <div style="padding:12px 16px">
+                <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px">深入追问</div>
+                <div style="display:flex; gap:8px; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:9px 12px">
+                  <span style="font-size:13px; color:#cbd5e1; flex:none">💬</span>
+                  <span style="font-size:12px; color:#cbd5e1; flex:1">问一个关于这个句子的问题…</span>
+                  <button style="font-size:11px; background:#1d4ed8; color:#fff; border:none; border-radius:4px; padding:4px 10px; cursor:pointer; opacity:0.45">发送</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═══ REVIEW ═══ -->
+    <sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+
+      <!-- Top bar -->
+      <div style="background:#fff; border-bottom:1px solid #e2e8f0; padding:12px 24px; flex:none; display:flex; align-items:center; gap:14px">
+        <h1 style="font-size:16px; font-weight:700; color:#0f172a; flex:none; letter-spacing:-0.02em">今日复习</h1>
+        <div style="flex:1; background:#f1f5f9; border-radius:100px; height:5px; overflow:hidden">
+          <div style="height:100%; background:#1d4ed8; border-radius:100px; transition:width 400ms ease; width:{{ reviewProgressPct }}"></div>
+        </div>
+        <div style="font-size:12px; color:#64748b; font-weight:600; flex:none">{{ reviewProgress }}</div>
+      </div>
+
+      <!-- Review area -->
+      <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column; align-items:center; padding:44px 24px">
+        <div style="width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px">
+
+          <!-- Card -->
+          <div style="background:#fff; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.04); overflow:hidden">
+
+            <!-- Meta bar -->
+            <div style="padding:11px 20px; background:#f8fafc; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:8px">
+              <span style="font-size:10px; font-weight:700; background:{{ reviewItem.typeBg }}; color:{{ reviewItem.typeColor }}; padding:2px 7px; border-radius:4px; border:1px solid {{ reviewItem.typeBd }}">{{ reviewItem.type }}</span>
+              <span style="font-size:11px; color:#94a3b8; flex:1">The Art of Noticing · Ch. 1</span>
+              <span style="font-size:11px; color:#b45309; font-weight:500">到期 今日</span>
+            </div>
+
+            <!-- Question -->
+            <div style="padding:36px 28px; text-align:center">
+              <div style="font-family:'Noto Serif',Georgia,serif; font-size:{{ reviewItem.surfaceSize }}; font-weight:600; color:#0f172a; line-height:1.4; letter-spacing:-0.01em; margin-bottom:10px">{{ reviewItem.surface }}</div>
+              <div style="font-size:13px; color:#94a3b8">{{ reviewItem.questionText }}</div>
+            </div>
+
+            <!-- Answer -->
+            <sc-if value="{{ isReviewAnswer }}" hint-placeholder-val="{{ false }}">
+              <div style="border-top:1px solid #f1f5f9; padding:20px 24px; background:#fafafa">
+                <div style="font-size:14px; font-weight:600; color:#15803d; margin-bottom:10px">{{ reviewItem.definition }}</div>
+                <div style="font-family:'Noto Serif',Georgia,serif; font-size:13px; color:#475569; font-style:italic; line-height:1.75; padding:10px 14px; background:#f1f5f9; border-radius:6px; margin-bottom:10px">{{ reviewItem.exampleOriginal }}</div>
+                <sc-if value="{{ reviewItem.hasCreated }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:5px">我的造句</div>
+                  <div style="font-family:'Noto Serif',Georgia,serif; font-size:14px; color:#0f172a; font-weight:600; line-height:1.65">{{ reviewItem.createdSentence }}</div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- Reveal button -->
+          <sc-if value="{{ isReviewQuestion }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center">
+              <button onClick="{{ revealAnswer }}" style="background:#1d4ed8; color:#fff; border:none; border-radius:8px; padding:13px 44px; font-size:15px; font-weight:600; cursor:pointer; box-shadow:0 3px 10px rgba(29,78,216,.28)">揭示答案</button>
+            </div>
+          </sc-if>
+
+          <!-- Rating buttons -->
+          <sc-if value="{{ isReviewAnswer }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font-size:11px; font-weight:600; color:#94a3b8; text-align:center; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.07em">掌握程度自评</div>
+              <div style="display:flex; gap:8px">
+                <button onClick="{{ rateAgain }}" style="flex:1; background:#fff; border:1.5px solid #fecdd3; color:#be123c; border-radius:7px; padding:12px 4px; font-size:13px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px">
+                  <span>Again</span><span style="font-size:10px; font-weight:400; color:#f87171">&lt;1天</span>
+                </button>
+                <button onClick="{{ rateHard }}" style="flex:1; background:#fff; border:1.5px solid #fed7aa; color:#c2410c; border-radius:7px; padding:12px 4px; font-size:13px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px">
+                  <span>Hard</span><span style="font-size:10px; font-weight:400; color:#fb923c">1天</span>
+                </button>
+                <button onClick="{{ rateGood }}" style="flex:1; background:#fff; border:1.5px solid #bfdbfe; color:#1d4ed8; border-radius:7px; padding:12px 4px; font-size:13px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px">
+                  <span>Good</span><span style="font-size:10px; font-weight:400; color:#60a5fa">3天</span>
+                </button>
+                <button onClick="{{ rateEasy }}" style="flex:1; background:#fff; border:1.5px solid #bbf7d0; color:#15803d; border-radius:7px; padding:12px 4px; font-size:13px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px">
+                  <span>Easy</span><span style="font-size:10px; font-weight:400; color:#4ade80">7天</span>
+                </button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═══ SEARCH ═══ -->
+    <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+
+      <!-- Top bar -->
+      <div style="background:#fff; border-bottom:1px solid #e2e8f0; padding:14px 24px 0; flex:none">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px">
+          <h1 style="font-size:17px; font-weight:700; color:#0f172a; flex:none; letter-spacing:-0.02em">搜索</h1>
+          <div style="flex:1; max-width:640px; display:flex; align-items:center; gap:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 12px">
+            <span style="color:#94a3b8; font-size:14px; line-height:1; flex:none">⊙</span>
+            <span style="font-size:13px; color:#334155; flex:1">{{ searchQuery }}</span>
+            <code style="font-size:10px; color:#94a3b8; background:#fff; border:1px solid #e2e8f0; padding:1px 5px; border-radius:3px; font-family:'Cascadia Code',Consolas,monospace">Esc</code>
+          </div>
+        </div>
+        <!-- Filter chips -->
+        <div style="display:flex; gap:5px; padding-bottom:1px">
+          <sc-for list="{{ searchFilters }}" as="f" hint-placeholder-count="5">
+            <button onClick="{{ f.select }}" style="font-size:11px; font-weight:600; padding:5px 13px; border-radius:100px; cursor:pointer; background:{{ f.bg }}; color:{{ f.color }}; border:1px solid {{ f.bd }}; margin-bottom:-1px">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div style="flex:1; overflow-y:auto; padding:16px 24px">
+        <div style="font-size:11px; color:#94a3b8; margin-bottom:12px">
+          找到 <span style="font-weight:600; color:#475569">{{ searchResultCount }}</span> 条结果，搜索「<span style="color:#0f172a; font-weight:500">{{ searchQuery }}</span>」
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px; max-width:860px">
+          <sc-for list="{{ searchResults }}" as="r" hint-placeholder-count="4">
+            <div style="background:#fff; border-radius:6px; padding:12px 16px; box-shadow:0 1px 2px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.04); cursor:pointer">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:6px">
+                <span style="font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px; background:{{ r.typeBg }}; color:{{ r.typeColor }}; border:1px solid {{ r.typeBd }}">{{ r.type }}</span>
+                <span style="font-size:11px; color:#94a3b8; flex:1">{{ r.breadcrumb }}</span>
+                <span style="font-size:10px; color:#cbd5e1; flex:none">{{ r.timestamp }}</span>
+              </div>
+              <div style="font-family:'Noto Serif',Georgia,serif; font-size:14px; line-height:1.7; color:#0f172a">{{ r.snippet }}</div>
+              <sc-if value="{{ r.hasSubtext }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:11px; color:#64748b; margin-top:4px">{{ r.subtext }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═══ LOG ═══ -->
+    <sc-if value="{{ isLog }}" hint-placeholder-val="{{ false }}">
+
+      <!-- Top bar -->
+      <div style="background:#fff; border-bottom:1px solid #e2e8f0; padding:14px 24px 12px; flex:none">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px">
+          <h1 style="font-size:17px; font-weight:700; color:#0f172a; flex:1; letter-spacing:-0.02em">处理台账</h1>
+          <div style="display:flex; align-items:center; gap:6px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:5px; padding:5px 10px; cursor:pointer; font-size:12px; color:#475569">
+            <span>The Art of Noticing</span>
+            <span style="color:#94a3b8; font-size:10px">▾</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <sc-for list="{{ logStats }}" as="stat" hint-placeholder-count="4">
+            <div style="display:flex; align-items:center; gap:6px; padding:5px 12px; background:{{ stat.bg }}; border:1px solid {{ stat.bd }}; border-radius:5px">
+              <span style="font-size:16px; font-weight:700; color:{{ stat.color }}; line-height:1">{{ stat.value }}</span>
+              <span style="font-size:11px; color:{{ stat.labelColor }}">{{ stat.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div style="background:#fff; border-bottom:1px solid #e2e8f0; padding:0 24px; display:flex; flex:none">
+        <button onClick="{{ switchToIssues }}" style="padding:10px 16px; font-size:13px; font-weight:{{ issuesTabFw }}; color:{{ issuesTabColor }}; background:none; border:none; border-bottom:2px solid {{ issuesTabBd }}; cursor:pointer">异常台账</button>
+        <button onClick="{{ switchToRules }}" style="padding:10px 16px; font-size:13px; font-weight:{{ rulesTabFw }}; color:{{ rulesTabColor }}; background:none; border:none; border-bottom:2px solid {{ rulesTabBd }}; cursor:pointer; display:flex; align-items:center; gap:6px">
+          规则库 <span style="font-size:10px; background:#f1f5f9; color:#475569; padding:1px 6px; border-radius:10px; font-weight:600">{{ ruleCount }}</span>
+        </button>
+      </div>
+
+      <!-- Issues list -->
+      <sc-if value="{{ isLogIssues }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1; overflow-y:auto; padding:16px 24px">
+          <div style="display:flex; flex-direction:column; gap:4px; max-width:980px">
+            <sc-for list="{{ logEntries }}" as="entry" hint-placeholder-count="5">
+              <div style="background:#fff; border-radius:6px; padding:11px 16px; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.04); display:flex; align-items:flex-start; gap:12px">
+                <div style="width:7px; height:7px; border-radius:50%; background:{{ entry.severityColor }}; flex:none; margin-top:5px"></div>
+                <div style="flex:1; min-width:0">
+                  <div style="display:flex; align-items:center; gap:6px; margin-bottom:5px; flex-wrap:wrap">
+                    <span style="font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; background:{{ entry.stageBg }}; color:{{ entry.stageColor }}">{{ entry.stage }}</span>
+                    <span style="font-size:11px; color:#1d4ed8; cursor:pointer">{{ entry.location }}</span>
+                    <span style="font-size:10px; color:#94a3b8">来源: {{ entry.source }}</span>
+                  </div>
+                  <code style="font-family:'Cascadia Code',Consolas,monospace; font-size:11px; color:#334155; background:#f8fafc; border:1px solid #f1f5f9; padding:2px 7px; border-radius:3px; display:inline-block; margin-bottom:5px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ entry.snippet }}</code>
+                  <div style="font-size:12px; color:#475569; line-height:1.55">{{ entry.action }}</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex:none">
+                  <span style="font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; background:{{ entry.resolvedBg }}; color:{{ entry.resolvedColor }}; border:1px solid {{ entry.resolvedBd }}; white-space:nowrap">{{ entry.resolvedLabel }}</span>
+                  <sc-if value="{{ entry.canUpgrade }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ entry.upgrade }}" style="font-size:10px; font-weight:600; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; border-radius:4px; padding:3px 8px; cursor:pointer; white-space:nowrap">升级为规则 →</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- Rules list -->
+      <sc-if value="{{ isLogRules }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1; overflow-y:auto; padding:16px 24px">
+          <div style="font-size:12px; color:#64748b; line-height:1.65; padding:11px 14px; background:#fffbeb; border:1px solid #fef3c7; border-radius:6px; border-left:3px solid #b45309; margin-bottom:16px; max-width:780px">
+            规则库随使用自动累积。每次「升级为规则」将一次手动处理固化为可复用规则，下次解析时自动应用。<strong style="color:#b45309">越用越健壮。</strong>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; max-width:800px">
+            <sc-for list="{{ ruleEntries }}" as="rule" hint-placeholder-count="3">
+              <div style="background:#fff; border-radius:6px; padding:13px 16px; box-shadow:0 1px 2px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.04); display:flex; align-items:flex-start; gap:12px">
+                <div style="flex:1; min-width:0">
+                  <div style="display:flex; align-items:center; gap:7px; margin-bottom:5px; flex-wrap:wrap">
+                    <span style="font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; background:{{ rule.stageBg }}; color:{{ rule.stageColor }}">{{ rule.stage }}</span>
+                    <span style="font-size:13px; font-weight:700; color:#0f172a">{{ rule.name }}</span>
+                    <code style="font-size:10px; color:#94a3b8; font-family:'Cascadia Code',Consolas,monospace">v{{ rule.version }}</code>
+                  </div>
+                  <div style="font-size:12px; color:#475569; margin-bottom:6px; line-height:1.55">{{ rule.description }}</div>
+                  <code style="font-family:'Cascadia Code',Consolas,monospace; font-size:10px; color:#334155; background:#f8fafc; border:1px solid #f1f5f9; padding:3px 8px; border-radius:3px; display:inline-block; word-break:break-all">{{ rule.pattern }}</code>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex:none">
+                  <span style="font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0">已启用</span>
+                  <span style="font-size:10px; color:#94a3b8">命中 {{ rule.hitCount }} 次</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ═══ OTHER placeholder ═══ -->
+    <sc-if value="{{ isOther }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px">
+        <div style="font-size:52px; opacity:0.15; line-height:1">{{ otherIcon }}</div>
+        <div style="font-size:16px; font-weight:600; color:#475569">{{ otherLabel }}</div>
+        <div style="font-size:13px; color:#94a3b8">此功能在原型中暂未展示</div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+
+  SENTENCES = [
+    { id:'s1', text:'Every piece of writing is built on the premise that attention is a gift.', para:1 },
+    { id:'s2', text:'The world is full of phenomena that go unnoticed—not because they are hidden, but because we have not learned to look.', para:1 },
+    { id:'s3', text:'Attention is a resource; a person has only so much of it.', para:2 },
+    { id:'s4', text:'To attend is not merely to look but to dwell, to linger with intention over what you encounter.', para:2 },
+    { id:'s5', text:'The amateur glances; the expert perceives.', para:3 },
+    { id:'s6', text:'What we seek, in most endeavors, is the capacity to make the invisible visible.', para:3 },
+  ];
+
+  BOOKS = [
+    { id:'b1', title:'The Art of Noticing', author:'Rob Walker', coverColor:'#1a2744', totalSentences:284, cards:12, dueCount:5, progress:0.23 },
+    { id:'b2', title:'Thinking, Fast and Slow', author:'Daniel Kahneman', coverColor:'#1b3655', totalSentences:892, cards:31, dueCount:3, progress:0.08 },
+    { id:'b3', title:'Bird by Bird', author:'Anne Lamott', coverColor:'#2e1a44', totalSentences:456, cards:8, dueCount:0, progress:0.45 },
+  ];
+
+  REVIEW_ITEMS = [
+    { id:'r1', type:'短语', surface:'go unnoticed',
+      definition:'不被察觉，被忽视；go + 形容词 = 维持某状态',
+      exampleOriginal:'The world is full of phenomena that go unnoticed—not because they are hidden, but because we have not learned to look.',
+      hasCreated:true, createdSentence:'His efforts always go unnoticed.' },
+    { id:'r2', type:'造句', surface:'His efforts always go unnoticed.',
+      definition:'他的付出总是被忽视。',
+      exampleOriginal:'✦ 学习点: go unnoticed（不被察觉）',
+      hasCreated:false, createdSentence:null },
+  ];
+
+  TOC = [
+    { id:'ch1',   title:'Chapter 1',          level:1, type:'正文', active:true },
+    { id:'ch1s1', title:'Paying Attention',    level:2, type:'正文', active:true },
+    { id:'ch1s2', title:'The Cost of Looking', level:2, type:'正文', active:false },
+    { id:'ch2',   title:'Chapter 2',           level:1, type:'正文', active:false },
+    { id:'ch2s1', title:'Noticing Differently',level:2, type:'正文', active:false },
+    { id:'ch2s2', title:'Expert Attention',    level:2, type:'正文', active:false },
+    { id:'intro', title:'Introduction',        level:1, type:'序言', active:false },
+  ];
+
+  NAV = [
+    { id:'shelf',  icon:'◫', label:'书库',     badge:null },
+    { id:'reader', icon:'☰', label:'阅读器',   badge:null },
+    { id:'review', icon:'↺', label:'复习',     badge:'8'  },
+    { id:'search', icon:'⊙', label:'搜索',     badge:null },
+    { id:'log',    icon:'≡', label:'处理台账', badge:null },
+  ];
+
+  LP_DATA = [
+    { id:'lp1', surface:'go unnoticed',           type:'短语', definition:'不被察觉，被忽视',
+      createInput:'他的付出总是被忽视。',
+      createOutput:'His efforts always go unnoticed.',
+      createNote:'用 "go unnoticed" 表达不被看见的状态，go + 形容词替代被动语态，更地道。' },
+    { id:'lp2', surface:'phenomena',              type:'单词', definition:'phenomenon 的复数；现象',
+      createInput:'这些社会现象很难解释。',
+      createOutput:'These social phenomena are difficult to explain.',
+      createNote:'正确使用 phenomena 作复数（非 *phenomenas），体现学术语感。' },
+    { id:'lp3', surface:'not because…but because', type:'句型', definition:'并列否定，先否后肯',
+      createInput:'他来这里不是因为工作，而是因为他爱这座城市。',
+      createOutput:'He came here not because of work, but because he loves this city.',
+      createNote:'并列否定结构先排除误解，再给出真因，比单纯陈述更有说服力。' },
+  ];
+
+  TYPE_COLORS = {
+    '短语': { bg:'#dbeafe', color:'#1d4ed8', bd:'#bfdbfe' },
+    '单词': { bg:'#f0fdf4', color:'#15803d', bd:'#bbf7d0' },
+    '句型': { bg:'#fffbeb', color:'#b45309', bd:'#fef3c7' },
+    '造句': { bg:'#fffbeb', color:'#b45309', bd:'#fef3c7' },
+    '搭配': { bg:'#f5f3ff', color:'#7c3aed', bd:'#ddd6fe' },
+  };
+
+  state = {
+    screen: 'shelf',
+    selectedSentenceId: null,
+    createOpenLPId: null,
+    reviewPhase: 'question',
+    reviewIndex: 0,
+    sentenceStatuses: { s1:'understood', s2:'card', s3:'unread', s4:'unread', s5:'understood', s6:'unread' },
+    promotedLPs: { lp3:true },
+    logTab: 'issues',
+    searchFilter: '全部',
+    upgradedEntries: {},
+  };
+
+  LOG_ENTRIES = [
+    { id:'l1', severity:'warn',  stage:'clean',    location:'Ch.1 · §3', snippet:'<a href="#fn1">¹</a>', action:'脚注引用标记已从正文中剔除，原文留档于段落记录中，可在卡片侧「查看原始脚注」。', source:'rule',   resolved:true,  canUpgrade:false },
+    { id:'l2', severity:'error', stage:'segment',  location:'Ch.1 · §5', snippet:'Mr. Smith went to Washington. He said...', action:'缩写 "Mr." 触发错误断句，手动合并两个片段为一个完整句子。可固化为缩写词典规则。', source:'manual', resolved:true,  canUpgrade:true  },
+    { id:'l3', severity:'info',  stage:'classify', location:'Introduction', snippet:'(节点文本量 < 100字，无段落结构)', action:'自动判定为「序言」内容类型，已在范围确认页人工确认。', source:'rule',   resolved:true,  canUpgrade:false },
+    { id:'l4', severity:'warn',  stage:'clean',    location:'Ch.2 · §1', snippet:'[图注] Figure 1: The attention economy...', action:'figcaption 元素已过滤，不计入句子流。', source:'rule',   resolved:true,  canUpgrade:false },
+    { id:'l5', severity:'error', stage:'segment',  location:'Ch.2 · §8', snippet:'"...said Dr. Johnson. He argued that..."', action:'Dr. 头衔触发错误断句，手动合并后标记待规则化——建议将 Dr./Prof. 加入缩写词典。', source:'manual', resolved:false, canUpgrade:true  },
+    { id:'l6', severity:'warn',  stage:'segment',  location:'Ch.3 · §2', snippet:'e.g. sustained attention, selective...', action:'"e.g." 缩写已手动加入缩写词典，本句重新分割正确，可固化为规则。', source:'manual', resolved:false, canUpgrade:false },
+  ];
+
+  RULE_ENTRIES_BASE = [
+    { id:'rb1', stage:'segment', name:'缩写词典扩展', version:'3', description:'Mr./Mrs./Dr./Prof./Sr./Jr./vs./etc. 等不触发句子断点。', pattern:'abbr_dict: ["Mr","Mrs","Dr","Prof","Sr","Jr","vs","e.g","i.e","etc"]', hitCount:47 },
+    { id:'rb2', stage:'clean',   name:'脚注自动识别', version:'2', description:'epub:type="noteref" 与 role="doc-noteref" 的链接从正文剔除并留档。', pattern:'selector: a[epub\\:type="noteref"], [role="doc-noteref"]', hitCount:12 },
+    { id:'rb3', stage:'clean',   name:'图注过滤',     version:'1', description:'figcaption 元素不计入句子流，直接跳过。', pattern:'selector: figcaption, .caption, [data-type="caption"]', hitCount:8 },
+  ];
+
+  SEARCH_RESULTS_BASE = [
+    { id:'sr1', type:'句子',   typeBg:'#f1f5f9', typeColor:'#475569', typeBd:'#e2e8f0', breadcrumb:'The Art of Noticing › Ch.1 › Paying Attention', snippet:'The world is full of phenomena that go unnoticed—not because they are hidden, but because we have not learned to look.', hasSubtext:false, subtext:'', timestamp:'3天前' },
+    { id:'sr2', type:'学习点', typeBg:'#dbeafe', typeColor:'#1d4ed8', typeBd:'#bfdbfe', breadcrumb:'卡片 #2 › go unnoticed', snippet:'go unnoticed · 不被察觉，被忽视', hasSubtext:true,  subtext:'来自：The Art of Noticing · Ch.1', timestamp:'3天前' },
+    { id:'sr3', type:'造句',   typeBg:'#fffbeb', typeColor:'#b45309', typeBd:'#fef3c7', breadcrumb:'学习点: go unnoticed', snippet:'His efforts always go unnoticed.', hasSubtext:true,  subtext:'中文: 他的付出总是被忽视。', timestamp:'2天前' },
+    { id:'sr4', type:'讲解',   typeBg:'#f5f3ff', typeColor:'#7c3aed', typeBd:'#ddd6fe', breadcrumb:'卡片 #2 · 语法分析', snippet:'"go + 形容词" 表维持某状态（无需被动语态）。类似：go unheard、go unread。', hasSubtext:false, subtext:'', timestamp:'3天前' },
+  ];
+
+  renderVals() {
+    const { screen, selectedSentenceId, createOpenLPId, reviewPhase, reviewIndex, sentenceStatuses, promotedLPs, logTab, searchFilter, upgradedEntries } = this.state;
+    const TC = this.TYPE_COLORS;
+
+    // ── Navigation ──────────────────────────────────────────
+    const navItems = this.NAV.map(item => {
+      const active = screen === item.id;
+      return {
+        ...item,
+        hasBadge: !!item.badge,
+        bgColor:     active ? '#1e293b' : 'transparent',
+        borderColor: active ? '#b45309' : 'transparent',
+        textColor:   active ? '#f1f5f9' : '#64748b',
+        fw:          active ? '600'     : '400',
+        handler: () => this.setState({ screen: item.id, selectedSentenceId: null }),
+      };
+    });
+
+    // ── Books ────────────────────────────────────────────────
+    const books = this.BOOKS.map(b => ({
+      ...b,
+      hasDue: b.dueCount > 0,
+      dueText: b.dueCount + ' 待复习',
+      progressPct: Math.round(b.progress * 100) + '%',
+      openReader: () => this.setState({ screen:'reader', selectedSentenceId:null }),
+    }));
+
+    // ── Sentences ────────────────────────────────────────────
+    const STATUS_CFG = {
+      understood: { color:'#16a34a', label:'已读懂' },
+      card:       { color:'#b45309', label:'有卡片' },
+      unread:     { color:'transparent', label:'未读' },
+      flagged:    { color:'#be123c', label:'复习中' },
+    };
+    let prevPara = null;
+    const sentences = this.SENTENCES.map(s => {
+      const status = sentenceStatuses[s.id] || 'unread';
+      const sc = STATUS_CFG[status] || STATUS_CFG.unread;
+      const isSel = s.id === selectedSentenceId;
+      const showParaBreak = prevPara !== null && s.para !== prevPara;
+      prevPara = s.para;
+      return {
+        ...s, status, isSelected: isSel,
+        showParaBreak,
+        paraNum: String(s.para),
+        statusColor: sc.color,
+        statusLabel: sc.label,
+        bgColor: isSel ? '#fffbeb' : 'transparent',
+        select: () => this.setState({ selectedSentenceId: s.id }),
+        markUnderstood: (e) => {
+          e && e.stopPropagation && e.stopPropagation();
+          this.setState(prev => ({
+            sentenceStatuses: { ...prev.sentenceStatuses, [s.id]:'understood' },
+            selectedSentenceId: null,
+          }));
+        },
+        markCard: (e) => {
+          e && e.stopPropagation && e.stopPropagation();
+          this.setState(prev => ({
+            sentenceStatuses: { ...prev.sentenceStatuses, [s.id]:'card' },
+            selectedSentenceId: s.id,
+          }));
+        },
+      };
+    });
+
+    // ── Card panel ───────────────────────────────────────────
+    const selS = this.SENTENCES.find(s => s.id === selectedSentenceId);
+    const selStatus = selS ? (sentenceStatuses[selS.id] || 'unread') : null;
+    const isCardLoaded = selStatus === 'card';
+    const isCardEmpty = !isCardLoaded;
+
+    const PHRASE_TC = {
+      '短语': { bg:'#dbeafe', color:'#1d4ed8' },
+      '单词': { bg:'#f0fdf4', color:'#15803d' },
+      '句型': { bg:'#fffbeb', color:'#b45309' },
+    };
+    const cardPhrases = [
+      { surface:'go unnoticed', type:'短语', meaning:'不被察觉，被忽视',
+        note:'"go + 形容词"表维持某状态（无需被动语态）。类似：go unheard、go unread。可用于人、努力、事件等。' },
+      { surface:'phenomena',   type:'单词', meaning:'现象（复数）',
+        note:'phenomenon 的希腊语复数。注：*phenomenas 是错误形式。学术/书面词，常见于哲学与科学语境。' },
+      { surface:'not because…but because', type:'句型', meaning:'不是因为 A，而是因为 B',
+        note:'并列否定句型，先否定错误原因，再给出真因，逻辑清晰有力，书面英语常见。' },
+    ].map(p => { const t = PHRASE_TC[p.type] || { bg:'#f1f5f9', color:'#475569' }; return { ...p, tagBg:t.bg, tagColor:t.color }; });
+
+    const learningPoints = this.LP_DATA.map(lp => {
+      const t = TC[lp.type] || { bg:'#f1f5f9', color:'#475569', bd:'#e2e8f0' };
+      const promoted = !!promotedLPs[lp.id];
+      return {
+        ...lp,
+        typeBg: t.bg, typeColor: t.color,
+        reviewBg:    promoted ? '#f0fdf4' : '#f1f5f9',
+        reviewColor: promoted ? '#15803d' : '#475569',
+        reviewBd:    promoted ? '#bbf7d0' : '#e2e8f0',
+        reviewLabel: promoted ? '✓ 已加入' : '加入复习',
+        createOpen:  createOpenLPId === lp.id,
+        openCreate:  () => this.setState({ createOpenLPId: createOpenLPId === lp.id ? null : lp.id }),
+        addToReview: (e) => {
+          e && e.stopPropagation && e.stopPropagation();
+          this.setState(prev => ({ promotedLPs: { ...prev.promotedLPs, [lp.id]:true } }));
+        },
+      };
+    });
+
+    // ── Review ───────────────────────────────────────────────
+    const total = this.REVIEW_ITEMS.length;
+    const cur = reviewIndex % total;
+    const ri = this.REVIEW_ITEMS[cur];
+    const rTC = TC[ri.type] || { bg:'#f1f5f9', color:'#475569', bd:'#e2e8f0' };
+    const reviewItem = {
+      ...ri,
+      typeBg: rTC.bg, typeColor: rTC.color, typeBd: rTC.bd,
+      hasCreated: ri.hasCreated,
+      createdSentence: ri.createdSentence || '',
+      surfaceSize:  ri.type === '造句' ? '18px' : '28px',
+      questionText: ri.type === '造句' ? '翻译成中文，大声朗读出来' : '含义与用法？',
+    };
+
+    // ── Log ──────────────────────────────────────────────────
+    const STAGE_TC = {
+      classify: { bg:'#f5f3ff', color:'#7c3aed' },
+      clean:    { bg:'#f0fdf4', color:'#15803d' },
+      segment:  { bg:'#dbeafe', color:'#1d4ed8' },
+      other:    { bg:'#f1f5f9', color:'#475569' },
+    };
+    const logEntries = this.LOG_ENTRIES.map(e => {
+      const upgraded = !!upgradedEntries[e.id];
+      const isResolved = e.resolved || upgraded;
+      const sc = STAGE_TC[e.stage] || STAGE_TC.other;
+      return {
+        ...e,
+        severityColor: e.severity === 'error' ? '#be123c' : e.severity === 'warn' ? '#d97706' : '#1d4ed8',
+        stageBg: sc.bg, stageColor: sc.color,
+        resolvedBg:    isResolved ? '#f0fdf4' : '#fffbeb',
+        resolvedColor: isResolved ? '#15803d' : '#b45309',
+        resolvedBd:    isResolved ? '#bbf7d0' : '#fef3c7',
+        resolvedLabel: isResolved ? '✓ 已解决' : '待处理',
+        canUpgrade: e.canUpgrade && !upgraded,
+        upgrade: () => this.setState(prev => ({ upgradedEntries: { ...prev.upgradedEntries, [e.id]:true } })),
+      };
+    });
+
+    const upgradedAsRules = this.LOG_ENTRIES
+      .filter(e => !!upgradedEntries[e.id])
+      .map((e, i) => {
+        const sc = STAGE_TC[e.stage] || STAGE_TC.other;
+        return { id:'ru'+i, stage:e.stage, stageBg:sc.bg, stageColor:sc.color,
+          name: e.location + ' 修正规则', version:'1',
+          description: e.action, pattern:'source: manual → rule (log #' + e.id + ')', hitCount:0 };
+      });
+    const ruleEntries = [
+      ...this.RULE_ENTRIES_BASE.map(r => { const sc = STAGE_TC[r.stage] || STAGE_TC.other; return { ...r, stageBg:sc.bg, stageColor:sc.color }; }),
+      ...upgradedAsRules,
+    ];
+
+    const resolvedCount = logEntries.filter(e => e.resolvedLabel === '✓ 已解决').length;
+    const logStats = [
+      { value:String(logEntries.length), label:'总计',   bg:'#f1f5f9', bd:'#e2e8f0', color:'#0f172a', labelColor:'#475569' },
+      { value:String(resolvedCount),     label:'已解决', bg:'#f0fdf4', bd:'#bbf7d0', color:'#15803d', labelColor:'#15803d' },
+      { value:String(logEntries.length - resolvedCount), label:'待处理', bg:'#fffbeb', bd:'#fef3c7', color:'#b45309', labelColor:'#b45309' },
+      { value:String(ruleEntries.length), label:'规则',  bg:'#dbeafe', bd:'#bfdbfe', color:'#1d4ed8', labelColor:'#1d4ed8' },
+    ];
+
+    // ── Search ────────────────────────────────────────────────
+    const FILTER_LABELS = ['全部', '句子', '学习点', '造句', '讲解'];
+    const searchResults = searchFilter === '全部'
+      ? this.SEARCH_RESULTS_BASE
+      : this.SEARCH_RESULTS_BASE.filter(r => r.type === searchFilter);
+
+    // ── Other ─────────────────────────────────────────────────
+    const OTHER = { settings: { label:'设置', icon:'⚙' } };
+    const other = OTHER[screen] || { label:screen, icon:'◫' };
+
+    return {
+      // Screens
+      isShelf:     screen === 'shelf',
+      isReader:    screen === 'reader',
+      isReview:    screen === 'review',
+      isSearch:    screen === 'search',
+      isLog:       screen === 'log',
+      isOther:     !['shelf','reader','review','search','log'].includes(screen),
+      isLogIssues: screen === 'log' && logTab === 'issues',
+      isLogRules:  screen === 'log' && logTab === 'rules',
+
+      // Nav
+      navItems,
+      goSettings: () => this.setState({ screen:'settings' }),
+      goClose: () => {},
+
+      // Shelf
+      bookCount: String(this.BOOKS.length),
+      todayReviewCount: 8,
+      goReview:   () => this.setState({ screen:'review' }),
+      importBook: () => {},
+      books,
+
+      // Reader
+      goBack: () => this.setState({ screen:'shelf' }),
+      tocTree: this.TOC.map(n => ({
+        ...n,
+        padding:   n.level === 1 ? '7px 12px 7px 14px' : '5px 12px 5px 26px',
+        textColor: n.active ? '#0f172a' : '#64748b',
+        bg:        n.active ? '#eef2ff' : 'transparent',
+        fw:        n.level === 1 ? '600' : '400',
+        leftBorder: n.active ? '#1d4ed8' : 'transparent',
+        tagBg:     n.type === '序言' ? '#f5f3ff' : '#f0fdf4',
+        tagColor:  n.type === '序言' ? '#7c3aed' : '#15803d',
+      })),
+      sentences,
+      isCardEmpty,
+      isCardLoaded,
+      selectedSentenceText: selS ? selS.text : '',
+      cardGrammar: '"not because A, but because B" 是并列否定结构（correlative negation）。主句 "The world is full of phenomena" 后接定语从句 "that go unnoticed"，其中 "go + 形容词" 表「维持某状态」，比被动语态更简洁。phenomena 是 phenomenon 的希腊语复数。',
+      cardTranslation: '世界充满了被忽视的现象——不是因为它们被隐藏，而是因为我们还没有学会观察。',
+      cardRephrase: "There are countless things around us that nobody notices—not because they're secret or hidden, but simply because we haven't trained ourselves to pay attention to them.",
+      cardPhrases,
+      learningPoints,
+      lpCount: String(this.LP_DATA.length),
+
+      // Review
+      reviewItem,
+      reviewProgress:    (cur + 1) + ' / ' + total,
+      reviewProgressPct: Math.round(((cur + 1) / total) * 100) + '%',
+      isReviewQuestion: reviewPhase === 'question',
+      isReviewAnswer:   reviewPhase === 'answer',
+      revealAnswer: () => this.setState({ reviewPhase:'answer' }),
+      rateAgain: () => this.setState({ reviewPhase:'question' }),
+      rateHard:  () => this.setState({ reviewPhase:'question', reviewIndex:(cur+1) % total }),
+      rateGood:  () => this.setState({ reviewPhase:'question', reviewIndex:(cur+1) % total }),
+      rateEasy:  () => this.setState({ reviewPhase:'question', reviewIndex:(cur+1) % total }),
+
+      // Log
+      logEntries,
+      logStats,
+      ruleEntries,
+      ruleCount:      String(ruleEntries.length),
+      issuesTabFw:    logTab === 'issues' ? '600' : '400',
+      issuesTabColor: logTab === 'issues' ? '#0f172a' : '#64748b',
+      issuesTabBd:    logTab === 'issues' ? '#b45309' : 'transparent',
+      rulesTabFw:     logTab === 'rules'  ? '600' : '400',
+      rulesTabColor:  logTab === 'rules'  ? '#0f172a' : '#64748b',
+      rulesTabBd:     logTab === 'rules'  ? '#b45309' : 'transparent',
+      switchToIssues: () => this.setState({ logTab:'issues' }),
+      switchToRules:  () => this.setState({ logTab:'rules' }),
+
+      // Search
+      searchQuery: 'go unnoticed',
+      searchFilters: FILTER_LABELS.map(f => ({
+        label: f,
+        bg:    searchFilter === f ? '#1d4ed8' : '#fff',
+        color: searchFilter === f ? '#fff'    : '#475569',
+        bd:    searchFilter === f ? '#1d4ed8' : '#e2e8f0',
+        select: () => this.setState({ searchFilter: f }),
+      })),
+      searchResults,
+      searchResultCount: String(searchResults.length),
+
+      // Other
+      otherLabel: other.label,
+      otherIcon:  other.icon,
+    };
+  }
+}
+</script>
+</body>
+</html>
