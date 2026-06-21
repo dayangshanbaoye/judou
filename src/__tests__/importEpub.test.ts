@@ -6,8 +6,13 @@ const { listenMock } = vi.hoisted(() => ({
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(async (command: string, payload?: unknown) => {
-    if (command !== 'import_epub') throw new Error(`unexpected command ${command}`)
-    return { job_id: `job-for-${(payload as { path: string }).path}` }
+    if (command === 'import_epub') {
+      return { job_id: `job-for-${(payload as { path: string }).path}` }
+    }
+    if (command === 'get_import_report') {
+      return { book_id: (payload as { bookId: number }).bookId, title: 'Inside the Box' }
+    }
+    throw new Error(`unexpected command ${command}`)
   }),
 }))
 
@@ -15,7 +20,7 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: listenMock,
 }))
 
-import { importEpub, onImportDone, onImportProgress } from '../api/importEpub'
+import { getImportReport, importEpub, onImportDone, onImportProgress } from '../api/importEpub'
 
 describe('import epub api client', () => {
   it('starts import job through Tauri command', async () => {
@@ -28,5 +33,12 @@ describe('import epub api client', () => {
 
     expect(listenMock).toHaveBeenCalledWith('import://progress', expect.any(Function))
     expect(listenMock).toHaveBeenCalledWith('import://done', expect.any(Function))
+  })
+
+  it('loads import report by book id', async () => {
+    await expect(getImportReport(42)).resolves.toMatchObject({
+      book_id: 42,
+      title: 'Inside the Box',
+    })
   })
 })

@@ -197,3 +197,31 @@ fn reference_epub_imports_partial_book_and_returns_report() {
     assert_eq!(trace.toc_title, "Introduction: A Textbook Case of Discovery");
     assert!(trace.clean_text.starts_with("There is, perhaps"));
 }
+
+#[test]
+fn import_report_can_be_rebuilt_from_database() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    judou_lib::db::run_migrations(&connection).unwrap();
+
+    let imported = import_epub(
+        &connection,
+        Path::new("../fixtures/epub/Inside the Box - David Epstein.epub"),
+        ImportOptions {
+            max_included_chapters: Some(2),
+        },
+    )
+    .unwrap();
+
+    let report = SqliteRepo::new(&connection)
+        .get_import_report(imported.book_id)
+        .unwrap();
+
+    assert_eq!(report.book_id, imported.book_id);
+    assert_eq!(report.title, "Inside the Box");
+    assert_eq!(report.root_toc_nodes, 16);
+    assert_eq!(report.toc_nodes_total, 31);
+    assert_eq!(report.included_toc_nodes, 16);
+    assert_eq!(report.title_only_toc_nodes, 4);
+    assert_eq!(report.excluded_toc_nodes, 11);
+    assert_eq!(report.paragraphs_imported, imported.report.paragraphs_imported);
+}

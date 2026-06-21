@@ -5,10 +5,10 @@ use std::{
 };
 
 use rusqlite::Connection;
-use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::{
+    domain::ImportReport,
     error::{JudouError, Result},
     ingest::epub::{
         classify_toc_nodes, extract_paragraphs_from_xhtml, parse_ncx_toc, read_package_document,
@@ -30,23 +30,10 @@ impl ImportOptions {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportedBook {
     pub book_id: i64,
     pub report: ImportReport,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct ImportReport {
-    pub book_id: i64,
-    pub title: String,
-    pub root_toc_nodes: usize,
-    pub toc_nodes_total: usize,
-    pub included_toc_nodes: usize,
-    pub title_only_toc_nodes: usize,
-    pub excluded_toc_nodes: usize,
-    pub chapters_imported: usize,
-    pub paragraphs_imported: usize,
 }
 
 pub fn import_epub(

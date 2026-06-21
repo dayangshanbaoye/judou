@@ -42,6 +42,10 @@ export async function importEpub(path: string): Promise<ImportJobResponse> {
   return invoke<ImportJobResponse>('import_epub', { path })
 }
 
+export async function getImportReport(bookId: number): Promise<ImportReport> {
+  return invoke<ImportReport>('get_import_report', { bookId })
+}
+
 export async function onImportProgress(
   handler: (event: ImportProgressEvent) => void,
 ): Promise<UnlistenFn> {

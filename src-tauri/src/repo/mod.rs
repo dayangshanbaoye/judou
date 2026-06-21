@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
+    domain::ImportReport,
     error::{JudouError, Result},
     ingest::epub::{ContentType, ExtractedParagraph, TocNode},
 };
@@ -86,6 +87,56 @@ impl<'connection> SqliteRepo<'connection> {
             .map_err(Into::into)
     }
 
+    pub fn get_import_report(&self, book_id: i64) -> Result<ImportReport> {
+        let title = self
+            .connection
+            .query_row(
+                "SELECT title FROM books WHERE id = ?1",
+                params![book_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or_else(|| JudouError::Validation(format!("book '{book_id}' not found")))?;
+
+        let root_toc_nodes = self.count_i64(
+            "SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1 AND parent_id IS NULL",
+            book_id,
+        )? as usize;
+        let toc_nodes_total =
+            self.count_i64("SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1", book_id)?
+                as usize;
+        let included_toc_nodes = self.count_i64(
+            "SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1 AND included = 1",
+            book_id,
+        )? as usize;
+        let title_only_toc_nodes = self.count_i64(
+            "SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1 AND content_type = 'title_only'",
+            book_id,
+        )? as usize;
+        let excluded_toc_nodes = self.count_i64(
+            "SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1 AND content_type = 'excluded'",
+            book_id,
+        )? as usize;
+        let chapters_imported = self.count_i64(
+            "SELECT COUNT(DISTINCT source_href) FROM paragraphs WHERE book_id = ?1",
+            book_id,
+        )? as usize;
+        let paragraphs_imported =
+            self.count_i64("SELECT COUNT(*) FROM paragraphs WHERE book_id = ?1", book_id)? as usize;
+
+        Ok(ImportReport {
+            book_id,
+            title,
+            root_toc_nodes,
+            toc_nodes_total,
+            included_toc_nodes,
+            title_only_toc_nodes,
+            excluded_toc_nodes,
+            chapters_imported,
+            paragraphs_imported,
+        })
+    }
+
     fn insert_toc_node(&self, book_id: i64, parent_id: Option<i64>, node: &TocNode) -> Result<i64> {
         self.connection.execute(
             "INSERT INTO toc_nodes(book_id, parent_id, title, level, order_index, spine_href, nav_anchor, content_type, included)
@@ -124,6 +175,12 @@ impl<'connection> SqliteRepo<'connection> {
                     "cannot attach paragraphs: missing toc node for href '{href}'"
                 ))
             })
+    }
+
+    fn count_i64(&self, sql: &str, book_id: i64) -> Result<i64> {
+        self.connection
+            .query_row(sql, params![book_id], |row| row.get(0))
+            .map_err(Into::into)
     }
 }
 

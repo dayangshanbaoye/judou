@@ -5,8 +5,9 @@ use uuid::Uuid;
 
 use crate::{
     db,
+    domain::ImportReport,
     error::Result,
-    ingest::import::{import_epub as import_epub_file, ImportOptions, ImportReport},
+    ingest::import::{import_epub as import_epub_file, ImportOptions},
 };
 
 pub const PING_EVENT: &str = "ping://pong";
@@ -70,7 +71,7 @@ pub fn build_ping_response(payload: String) -> PingResponse {
 pub async fn import_epub(app: AppHandle, path: String) -> Result<ImportJobResponse> {
     let response = build_import_job_response();
     let job_id = response.job_id.clone();
-    let db_path = app.path().app_data_dir()?.join("judou.sqlite3");
+    let db_path = app_database_path(&app)?;
     let epub_path = PathBuf::from(path);
     let worker_app = app.clone();
 
@@ -92,6 +93,13 @@ pub async fn import_epub(app: AppHandle, path: String) -> Result<ImportJobRespon
     });
 
     Ok(response)
+}
+
+#[tauri::command]
+pub async fn get_import_report(app: AppHandle, book_id: i64) -> Result<ImportReport> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.get_import_report(book_id)
 }
 
 pub fn build_import_job_response() -> ImportJobResponse {
@@ -126,6 +134,10 @@ fn run_import_job(
         },
     )?;
     Ok(())
+}
+
+fn app_database_path(app: &AppHandle) -> Result<PathBuf> {
+    Ok(app.path().app_data_dir()?.join("judou.sqlite3"))
 }
 
 fn emit_import_progress(
