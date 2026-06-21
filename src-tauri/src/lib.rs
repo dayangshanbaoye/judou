@@ -4,6 +4,7 @@ pub mod db;
 pub mod error;
 pub mod ingest;
 pub mod llm;
+pub mod repo;
 pub mod tts;
 
 pub fn run() -> tauri::Result<()> {
