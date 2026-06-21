@@ -25,6 +25,21 @@ fn migration_creates_initial_schema_tables() {
     assert_eq!(default_deck_count, 1);
 }
 
+#[test]
+fn migration_is_idempotent_on_existing_database() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+
+    db::run_migrations(&connection).unwrap();
+    db::run_migrations(&connection).unwrap();
+
+    let migration_count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM schema_migrations WHERE version = 1", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(migration_count, 1);
+}
+
 #[tokio::test]
 async fn ping_returns_payload_and_job_id() {
     let response = judou_lib::commands::build_ping_response("phase0".to_string());
