@@ -5,6 +5,13 @@ let doneHandler: ((event: unknown) => void) | undefined
 
 vi.mock('../api/importEpub', () => ({
   importEpub: vi.fn(async () => ({ job_id: 'job-1' })),
+  getImportJob: vi.fn(async () => ({
+    job_id: 'job-1',
+    state: 'running',
+    stage: 'parse',
+    percent: 35,
+    message: '解析 EPUB 结构与目录',
+  })),
   onImportProgress: vi.fn(async () => vi.fn()),
   onImportError: vi.fn(async () => vi.fn()),
   onImportDone: vi.fn(async (handler: (event: unknown) => void) => {
@@ -53,5 +60,12 @@ describe('ImportPanel', () => {
     expect(wrapper.text()).toContain('Inside the Box')
     expect(wrapper.text()).toContain('31')
     expect(wrapper.text()).toContain('101')
+  })
+
+  it('renders a progress bar', () => {
+    const wrapper = mount(ImportPanel)
+
+    const progress = wrapper.get('[data-test="import-progress"]')
+    expect(progress.attributes('max')).toBe('100')
   })
 })

@@ -38,8 +38,25 @@ export type ImportErrorEvent = {
   }
 }
 
+export type ImportJobStatus = {
+  job_id: string
+  state: 'running' | 'done' | 'error'
+  stage: string
+  percent: number
+  message: string
+  report?: ImportReport | null
+  error?: {
+    code: string
+    message: string
+  } | null
+}
+
 export async function importEpub(path: string): Promise<ImportJobResponse> {
   return invoke<ImportJobResponse>('import_epub', { path })
+}
+
+export async function getImportJob(jobId: string): Promise<ImportJobStatus> {
+  return invoke<ImportJobStatus>('get_import_job', { jobId })
 }
 
 export async function getImportReport(bookId: number): Promise<ImportReport> {

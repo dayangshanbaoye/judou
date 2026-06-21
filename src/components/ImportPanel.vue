@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import {
+  getImportJob,
   importEpub,
   onImportDone,
   onImportError,
@@ -17,6 +18,7 @@ const statusMessage = ref('等待选择 EPUB 文件路径')
 const percent = ref(0)
 const report = ref<ImportReport | null>(null)
 const errorMessage = ref('')
+let pollTimer: number | undefined
 const unlisteners: Array<() => void> = []
 
 async function startImport() {
@@ -37,10 +39,49 @@ async function startImport() {
     const response = await importEpub(normalizedPath)
     activeJobId.value = response.job_id
     statusMessage.value = '导入任务已启动'
+    startPolling(response.job_id)
   } catch (error) {
     statusMessage.value = '导入启动失败'
     errorMessage.value = error instanceof Error ? error.message : String(error)
   }
+}
+
+function startPolling(jobId: string) {
+  stopPolling()
+  pollTimer = window.setInterval(async () => {
+    try {
+      const status = await getImportJob(jobId)
+      applyJobStatus(status)
+      if (status.state !== 'running') stopPolling()
+    } catch (error) {
+      errorMessage.value = error instanceof Error ? error.message : String(error)
+      statusMessage.value = '读取导入进度失败'
+      stopPolling()
+    }
+  }, 250)
+}
+
+function stopPolling() {
+  if (pollTimer !== undefined) {
+    window.clearInterval(pollTimer)
+    pollTimer = undefined
+  }
+}
+
+function applyJobStatus(status: {
+  job_id: string
+  state: string
+  percent: number
+  message: string
+  report?: ImportReport | null
+  error?: { message: string } | null
+}) {
+  if (activeJobId.value && status.job_id !== activeJobId.value) return
+  activeJobId.value = status.job_id
+  percent.value = status.percent
+  statusMessage.value = status.message
+  if (status.report) report.value = status.report
+  if (status.error) errorMessage.value = status.error.message
 }
 
 function useReferenceBook() {
@@ -57,29 +98,44 @@ onMounted(async () => {
   unlisteners.push(
     await onImportProgress((event) => {
       if (activeJobId.value && event.job_id !== activeJobId.value) return
-      percent.value = event.percent
-      statusMessage.value = event.message
+      applyJobStatus({
+        job_id: event.job_id,
+        state: 'running',
+        percent: event.percent,
+        message: event.message,
+      })
     }),
   )
   unlisteners.push(
     await onImportDone((event) => {
       if (activeJobId.value && event.job_id !== activeJobId.value) return
-      activeJobId.value = event.job_id
-      percent.value = 100
-      statusMessage.value = '导入完成'
-      report.value = event.report
+      applyJobStatus({
+        job_id: event.job_id,
+        state: 'done',
+        percent: 100,
+        message: '导入完成',
+        report: event.report,
+      })
+      stopPolling()
     }),
   )
   unlisteners.push(
     await onImportError((event) => {
       if (activeJobId.value && event.job_id !== activeJobId.value) return
-      errorMessage.value = event.error.message
-      statusMessage.value = '导入失败'
+      applyJobStatus({
+        job_id: event.job_id,
+        state: 'error',
+        percent: percent.value,
+        message: '导入失败',
+        error: event.error,
+      })
+      stopPolling()
     }),
   )
 })
 
 onUnmounted(() => {
+  stopPolling()
   for (const unlisten of unlisteners) unlisten()
 })
 </script>
@@ -110,6 +166,7 @@ onUnmounted(() => {
       <span v-if="activeJobId">Job: {{ activeJobId }}</span>
       <span>{{ percent }}%</span>
     </div>
+    <progress data-test="import-progress" max="100" :value="percent">{{ percent }}%</progress>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 

@@ -22,6 +22,10 @@ impl<'connection> SqliteRepo<'connection> {
         chapter_paragraphs: &[ChapterParagraphs<'_>],
     ) -> Result<i64> {
         self.connection.execute(
+            "DELETE FROM books WHERE file_hash = ?1",
+            params![book.file_hash],
+        )?;
+        self.connection.execute(
             "INSERT INTO books(title, author, language, file_hash) VALUES (?1, ?2, ?3, ?4)",
             params![book.title, book.author, book.language, book.file_hash],
         )?;

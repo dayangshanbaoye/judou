@@ -40,6 +40,23 @@ fn import_job_response_contains_job_id() {
     assert!(!response.job_id.is_empty());
 }
 
+#[test]
+fn import_job_status_tracks_progress_and_completion() {
+    let status = judou_lib::commands::ImportJobStatus::running(
+        "job-1".to_string(),
+        "parse".to_string(),
+        35,
+        "解析 EPUB 结构与目录".to_string(),
+    );
+
+    assert_eq!(status.job_id, "job-1");
+    assert_eq!(status.state, "running");
+    assert_eq!(status.percent, 35);
+    assert_eq!(status.message, "解析 EPUB 结构与目录");
+    assert!(status.report.is_none());
+    assert!(status.error.is_none());
+}
+
 #[tokio::test]
 async fn mock_llm_and_tts_are_injectable() {
     let llm = MockLlm::new(serde_json::json!({"ok": true}).to_string());

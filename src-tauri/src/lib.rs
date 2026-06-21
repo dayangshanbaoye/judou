@@ -10,10 +10,12 @@ pub mod tts;
 
 pub fn run() -> tauri::Result<()> {
     tauri::Builder::default()
+        .manage(commands::ImportJobStore::default())
         .invoke_handler(tauri::generate_handler![
             commands::ping,
             commands::import_epub,
-            commands::get_import_report
+            commands::get_import_report,
+            commands::get_import_job
         ])
         .run(tauri::generate_context!())
 }
