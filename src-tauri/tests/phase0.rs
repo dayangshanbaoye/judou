@@ -33,6 +33,13 @@ async fn ping_returns_payload_and_job_id() {
     assert!(!response.job_id.is_empty());
 }
 
+#[test]
+fn import_job_response_contains_job_id() {
+    let response = judou_lib::commands::build_import_job_response();
+
+    assert!(!response.job_id.is_empty());
+}
+
 #[tokio::test]
 async fn mock_llm_and_tts_are_injectable() {
     let llm = MockLlm::new(serde_json::json!({"ok": true}).to_string());

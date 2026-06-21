@@ -18,7 +18,7 @@ impl<'connection> SqliteRepo<'connection> {
         &self,
         book: &BookDraft<'_>,
         toc_nodes: &[TocNode],
-        chapter_paragraphs: &[ChapterParagraphs],
+        chapter_paragraphs: &[ChapterParagraphs<'_>],
     ) -> Result<i64> {
         self.connection.execute(
             "INSERT INTO books(title, author, language, file_hash) VALUES (?1, ?2, ?3, ?4)",
@@ -136,8 +136,8 @@ pub struct BookDraft<'value> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChapterParagraphs {
-    pub toc_href: &'static str,
+pub struct ChapterParagraphs<'value> {
+    pub toc_href: &'value str,
     pub paragraphs: Vec<ExtractedParagraph>,
 }
 

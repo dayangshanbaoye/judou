@@ -30,20 +30,24 @@ impl Serialize for JudouError {
     where
         S: serde::Serializer,
     {
-        let code = match self {
+        IpcError {
+            code: self.code(),
+            message: self.to_string(),
+        }
+        .serialize(serializer)
+    }
+}
+
+impl JudouError {
+    pub fn code(&self) -> &'static str {
+        match self {
             JudouError::Db(_) => "DB",
             JudouError::Io(_) => "IO",
             JudouError::Zip(_) | JudouError::Xml(_) => "PARSE",
             JudouError::Event(_) => "UNKNOWN",
             JudouError::Validation(_) => "VALIDATION",
             JudouError::Provider(_) => "UNKNOWN",
-        };
-
-        IpcError {
-            code,
-            message: self.to_string(),
         }
-        .serialize(serializer)
     }
 }
 

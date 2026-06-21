@@ -27,14 +27,29 @@ type JudouError = {
 ## 1. 书架 / 导入
 | Command | 参数 | 返回 | 说明 |
 |---|---|---|---|
-| `import_epub` | `{ path: string }` | `{ job_id: string }` | 启动异步解析；进度走事件 |
+| `import_epub` | `{ path: string }` | `{ job_id: string }` | 启动异步解析；进度走事件；后端写入本地 `judou.sqlite3` |
 | `list_books` | `—` | `Book[]` | 含进度统计（句数/已精读/卡片/今日待复习） |
 | `get_book` | `{ book_id }` | `Book` | |
 | `delete_book` | `{ book_id }` | `void` | 级联清理下游数据与音频文件 |
 | `get_import_report` | `{ book_id }` | `ImportReport` | 章节/段/句计数、目录类型初判、异常数 |
 | `confirm_scope` | `{ book_id, nodes: {id, content_type, included}[] }` | `void` | 范围确认页提交；之后才执行断句落库 |
 
-**事件**：`import://progress` → `{ job_id, stage, percent, message }`；`import://done` → `{ job_id, book_id }`；`import://error` → `{ job_id, error }`。
+**事件**：`import://progress` → `{ job_id, stage, percent, message }`；`import://done` → `{ job_id, book_id, report }`；`import://error` → `{ job_id, error }`。
+
+`ImportReport` 当前字段：
+```ts
+type ImportReport = {
+  book_id:number;
+  title:string;
+  root_toc_nodes:number;
+  toc_nodes_total:number;
+  included_toc_nodes:number;
+  title_only_toc_nodes:number;
+  excluded_toc_nodes:number;
+  chapters_imported:number;
+  paragraphs_imported:number;
+};
+```
 
 ---
 

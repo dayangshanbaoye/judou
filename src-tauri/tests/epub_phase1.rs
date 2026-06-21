@@ -4,6 +4,7 @@ use judou_lib::ingest::epub::{
     classify_toc_nodes, extract_paragraphs_from_xhtml, locate_opf_path, parse_ncx_toc,
     read_package_document, ContentType,
 };
+use judou_lib::ingest::import::{import_epub, ImportOptions};
 use judou_lib::repo::{BookDraft, ChapterParagraphs, SqliteRepo};
 
 #[test]
@@ -164,4 +165,35 @@ fn reference_epub_persists_book_toc_and_paragraph_trace_chain() {
     assert_eq!(trace.toc_title, "Chapter 1: A World without Limits");
     assert!(trace.clean_text.starts_with("Imagine a tech company"));
     assert_eq!(repo.count_toc_nodes(book_id).unwrap(), 31);
+}
+
+#[test]
+fn reference_epub_imports_partial_book_and_returns_report() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    judou_lib::db::run_migrations(&connection).unwrap();
+
+    let imported = import_epub(
+        &connection,
+        Path::new("../fixtures/epub/Inside the Box - David Epstein.epub"),
+        ImportOptions {
+            max_included_chapters: Some(2),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(imported.report.book_id, imported.book_id);
+    assert_eq!(imported.report.title, "Inside the Box");
+    assert_eq!(imported.report.root_toc_nodes, 16);
+    assert_eq!(imported.report.toc_nodes_total, 31);
+    assert_eq!(imported.report.included_toc_nodes, 16);
+    assert_eq!(imported.report.excluded_toc_nodes, 11);
+    assert_eq!(imported.report.chapters_imported, 2);
+    assert!(imported.report.paragraphs_imported > 80);
+
+    let repo = SqliteRepo::new(&connection);
+    let trace = repo
+        .find_paragraph_trace(imported.book_id, "OEBPS/c4A.xhtml", 0)
+        .unwrap();
+    assert_eq!(trace.toc_title, "Introduction: A Textbook Case of Discovery");
+    assert!(trace.clean_text.starts_with("There is, perhaps"));
 }
