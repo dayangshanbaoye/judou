@@ -2,7 +2,8 @@ use std::path::Path;
 
 use judou_lib::{
     ingest::import::{import_epub, ImportOptions},
-    repo::SqliteRepo,
+    repo::{ScopeNodeUpdate, SqliteRepo},
+    segment::segment_paragraph_with_notices,
 };
 
 fn import_reference_book(connection: &rusqlite::Connection) -> i64 {
@@ -188,6 +189,47 @@ fn sentence_can_be_split_and_logged_without_rewriting() {
     );
     assert_eq!(
         repo.count_processing_log(book_id, "segment").unwrap(),
+        before_log_count + 1
+    );
+}
+
+#[test]
+fn scope_confirmation_excludes_node_from_segmentation() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    let book_id = import_reference_book(&connection);
+    let repo = SqliteRepo::new(&connection);
+    let view = repo.get_reader_view(book_id, None).unwrap();
+    let target_toc_node_id = view.active_toc_node_id;
+    let before_report = repo.get_import_report(book_id).unwrap();
+    let before_log_count = repo.count_processing_log(book_id, "classify").unwrap();
+
+    let updated_report = repo
+        .confirm_scope(
+            book_id,
+            &[ScopeNodeUpdate {
+                id: target_toc_node_id,
+                content_type: "excluded".to_string(),
+                included: false,
+            }],
+            segment_paragraph_with_notices,
+        )
+        .unwrap();
+
+    let scope_nodes = repo.list_scope_nodes(book_id).unwrap();
+    let excluded_node = scope_nodes
+        .iter()
+        .find(|node| node.id == target_toc_node_id)
+        .unwrap();
+    assert!(!excluded_node.included);
+    assert_eq!(excluded_node.content_type, "excluded");
+    assert_eq!(
+        repo.count_sentences_for_toc_node(target_toc_node_id)
+            .unwrap(),
+        0
+    );
+    assert!(updated_report.sentences_imported < before_report.sentences_imported);
+    assert_eq!(
+        repo.count_processing_log(book_id, "classify").unwrap(),
         before_log_count + 1
     );
 }

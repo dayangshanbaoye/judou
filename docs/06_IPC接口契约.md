@@ -32,7 +32,8 @@ type JudouError = {
 | `get_book` | `{ book_id }` | `Book` | |
 | `delete_book` | `{ book_id }` | `void` | 级联清理下游数据与音频文件 |
 | `get_import_report` | `{ book_id }` | `ImportReport` | 从本地库重建导入报告；当前含 TOC/段落/句子计数，异常计数后续补齐 |
-| `confirm_scope` | `{ book_id, nodes: {id, content_type, included}[] }` | `void` | 范围确认页提交；之后才执行断句落库 |
+| `get_scope_nodes` | `{ book_id }` | `ScopeNode[]` | Phase 3 已落地；导入后列出目录节点、分类、是否参与断句和句子数 |
+| `confirm_scope` | `{ book_id, nodes: {id, content_type, included}[] }` | `ImportReport` | Phase 3 已落地；确认范围并删除排除节点的句子，写 `processing_log(source='manual')` |
 
 **事件**：`import://progress` → `{ job_id, stage, percent, message }`；`import://done` → `{ job_id, book_id, report }`；`import://error` → `{ job_id, error }`。
 
@@ -49,6 +50,20 @@ type ImportReport = {
   chapters_imported:number;
   paragraphs_imported:number;
   sentences_imported:number;
+};
+```
+
+`ScopeNode` 当前字段：
+```ts
+type ScopeNode = {
+  id:number;
+  parent_id:number|null;
+  title:string;
+  level:number;
+  order_index:number;
+  content_type:'introduction'|'preface'|'body'|'title_only'|'excluded';
+  included:boolean;
+  sentence_count:number;
 };
 ```
 

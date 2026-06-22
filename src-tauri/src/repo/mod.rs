@@ -1,4 +1,5 @@
 use rusqlite::{params, Connection, OptionalExtension};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::{
@@ -258,6 +259,19 @@ impl<'connection> SqliteRepo<'connection> {
             .map_err(Into::into)
     }
 
+    pub fn count_sentences_for_toc_node(&self, toc_node_id: i64) -> Result<i64> {
+        self.connection
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM sentences s
+                 JOIN paragraphs p ON p.id = s.paragraph_id
+                 WHERE p.toc_node_id = ?1",
+                params![toc_node_id],
+                |row| row.get(0),
+            )
+            .map_err(Into::into)
+    }
+
     pub fn get_import_report(&self, book_id: i64) -> Result<ImportReport> {
         let title = self
             .connection
@@ -309,6 +323,90 @@ impl<'connection> SqliteRepo<'connection> {
             chapters_imported,
             paragraphs_imported,
             sentences_imported,
+        })
+    }
+
+    pub fn list_scope_nodes(&self, book_id: i64) -> Result<Vec<ScopeNode>> {
+        let mut statement = self.connection.prepare(
+            "SELECT t.id, t.parent_id, t.title, t.level, t.order_index, t.content_type, t.included,
+                    COUNT(s.id) AS sentence_count
+             FROM toc_nodes t
+             LEFT JOIN paragraphs p ON p.toc_node_id = t.id
+             LEFT JOIN sentences s ON s.paragraph_id = p.id
+             WHERE t.book_id = ?1
+             GROUP BY t.id, t.parent_id, t.title, t.level, t.order_index, t.content_type, t.included
+             ORDER BY t.id",
+        )?;
+        let rows = statement.query_map(params![book_id], |row| {
+            let included: i64 = row.get(6)?;
+            Ok(ScopeNode {
+                id: row.get(0)?,
+                parent_id: row.get(1)?,
+                title: row.get(2)?,
+                level: row.get(3)?,
+                order_index: row.get(4)?,
+                content_type: row.get(5)?,
+                included: included != 0,
+                sentence_count: row.get(7)?,
+            })
+        })?;
+
+        let mut nodes = Vec::new();
+        for row in rows {
+            nodes.push(row?);
+        }
+        Ok(nodes)
+    }
+
+    pub fn confirm_scope(
+        &self,
+        book_id: i64,
+        updates: &[ScopeNodeUpdate],
+        segmenter: fn(&str) -> SegmentationOutput,
+    ) -> Result<ImportReport> {
+        self.run_manual_transaction(|| {
+            for update in updates {
+                validate_content_type(&update.content_type)?;
+                let changed = self.connection.execute(
+                    "UPDATE toc_nodes
+                     SET content_type = ?1, included = ?2
+                     WHERE id = ?3 AND book_id = ?4",
+                    params![
+                        update.content_type,
+                        bool_value(update.included),
+                        update.id,
+                        book_id
+                    ],
+                )?;
+                if changed == 0 {
+                    return Err(JudouError::Validation(format!(
+                        "toc node '{}' not found in book '{}'",
+                        update.id, book_id
+                    )));
+                }
+
+                let title = self.toc_node_title(update.id)?;
+                self.connection.execute(
+                    "INSERT INTO processing_log(book_id, stage, severity, location_ref, raw_snippet, action_taken, source, resolved)
+                     VALUES (?1, 'classify', 'info', ?2, ?3, ?4, 'manual', 0)",
+                    params![
+                        book_id,
+                        format!("toc_node:{}", update.id),
+                        title,
+                        format!(
+                            "confirm_scope: content_type={}, included={}",
+                            update.content_type, update.included
+                        ),
+                    ],
+                )?;
+
+                if update.included {
+                    self.segment_toc_node_paragraphs(book_id, update.id, segmenter)?;
+                } else {
+                    self.delete_toc_node_sentences(update.id)?;
+                }
+            }
+            self.get_import_report(book_id)
         })
     }
 
@@ -723,6 +821,58 @@ impl<'connection> SqliteRepo<'connection> {
         Ok(())
     }
 
+    fn toc_node_title(&self, toc_node_id: i64) -> Result<String> {
+        self.connection
+            .query_row(
+                "SELECT title FROM toc_nodes WHERE id = ?1",
+                params![toc_node_id],
+                |row| row.get(0),
+            )
+            .map_err(Into::into)
+    }
+
+    fn delete_toc_node_sentences(&self, toc_node_id: i64) -> Result<()> {
+        self.connection.execute(
+            "DELETE FROM sentences
+             WHERE paragraph_id IN (SELECT id FROM paragraphs WHERE toc_node_id = ?1)",
+            params![toc_node_id],
+        )?;
+        Ok(())
+    }
+
+    fn segment_toc_node_paragraphs(
+        &self,
+        book_id: i64,
+        toc_node_id: i64,
+        segmenter: fn(&str) -> SegmentationOutput,
+    ) -> Result<()> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, source_href, source_path, clean_text
+             FROM paragraphs
+             WHERE book_id = ?1 AND toc_node_id = ?2
+             ORDER BY order_index, id",
+        )?;
+        let rows = statement.query_map(params![book_id, toc_node_id], |row| {
+            Ok(StoredParagraph {
+                id: row.get(0)?,
+                source_href: row.get(1)?,
+                source_path: row.get(2)?,
+                clean_text: row.get(3)?,
+            })
+        })?;
+
+        let mut paragraphs = Vec::new();
+        for row in rows {
+            paragraphs.push(row?);
+        }
+
+        for paragraph in paragraphs {
+            let output = segmenter(&paragraph.clean_text);
+            self.insert_sentences(paragraph.id, &output.sentences)?;
+        }
+        Ok(())
+    }
+
     fn insert_manual_processing_log(
         &self,
         book_id: i64,
@@ -809,6 +959,25 @@ struct StoredSentenceCorrection {
     end_offset: Option<i64>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ScopeNode {
+    pub id: i64,
+    pub parent_id: Option<i64>,
+    pub title: String,
+    pub level: i64,
+    pub order_index: i64,
+    pub content_type: String,
+    pub included: bool,
+    pub sentence_count: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ScopeNodeUpdate {
+    pub id: i64,
+    pub content_type: String,
+    pub included: bool,
+}
+
 fn validate_same_paragraph(sentences: &[StoredSentenceCorrection]) -> Result<()> {
     let first = sentences
         .first()
@@ -833,6 +1002,15 @@ fn validate_consecutive_sentences(sentences: &[StoredSentenceCorrection]) -> Res
         }
     }
     Ok(())
+}
+
+fn validate_content_type(content_type: &str) -> Result<()> {
+    match content_type {
+        "introduction" | "preface" | "body" | "title_only" | "excluded" => Ok(()),
+        _ => Err(JudouError::Validation(format!(
+            "invalid content type '{content_type}'"
+        ))),
+    }
 }
 
 fn content_type_value(content_type: ContentType) -> &'static str {

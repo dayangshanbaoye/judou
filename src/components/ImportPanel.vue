@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import {
+  confirmScope,
   getImportJob,
+  getScopeNodes,
   importEpub,
   onImportDone,
   onImportError,
   onImportProgress,
   type ImportReport,
+  type ScopeNode,
 } from '../api/importEpub'
 
 const referenceEpubPath =
@@ -17,6 +20,7 @@ const activeJobId = ref('')
 const statusMessage = ref('等待选择 EPUB 文件路径')
 const percent = ref(0)
 const report = ref<ImportReport | null>(null)
+const scopeNodes = ref<ScopeNode[]>([])
 const errorMessage = ref('')
 const emit = defineEmits<{
   imported: [bookId: number]
@@ -27,6 +31,7 @@ const unlisteners: Array<() => void> = []
 async function startImport() {
   errorMessage.value = ''
   report.value = null
+  scopeNodes.value = []
   const normalizedPath = normalizeWindowsPath(epubPath.value)
 
   if (!normalizedPath) {
@@ -83,9 +88,53 @@ function applyJobStatus(status: {
   activeJobId.value = status.job_id
   percent.value = status.percent
   statusMessage.value = status.message
-  if (status.report) report.value = status.report
-  if (status.report) emit('imported', status.report.book_id)
+  if (status.report) {
+    report.value = status.report
+    emit('imported', status.report.book_id)
+    void loadScopeNodes(status.report.book_id)
+  }
   if (status.error) errorMessage.value = status.error.message
+}
+
+async function loadScopeNodes(bookId: number) {
+  try {
+    scopeNodes.value = await getScopeNodes(bookId)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+function setScopeIncluded(node: ScopeNode, included: boolean) {
+  node.included = included
+  node.content_type = included && node.content_type === 'excluded' ? 'body' : node.content_type
+  if (!included) node.content_type = 'excluded'
+}
+
+function setScopeIncludedFromEvent(node: ScopeNode, event: Event) {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    setScopeIncluded(node, target.checked)
+  }
+}
+
+async function submitScope() {
+  if (!report.value) return
+  errorMessage.value = ''
+  try {
+    report.value = await confirmScope(
+      report.value.book_id,
+      scopeNodes.value.map((node) => ({
+        id: node.id,
+        content_type: node.content_type,
+        included: node.included,
+      })),
+    )
+    scopeNodes.value = await getScopeNodes(report.value.book_id)
+    statusMessage.value = '范围确认完成'
+    emit('imported', report.value.book_id)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : String(error)
+  }
 }
 
 function useReferenceBook() {
@@ -200,5 +249,27 @@ onUnmounted(() => {
         <dd>{{ report.sentences_imported }}</dd>
       </div>
     </dl>
+
+    <section v-if="scopeNodes.length" class="scope-panel">
+      <div>
+        <p class="panel-label">Phase 3 · 范围确认</p>
+        <h3>确认哪些目录节点参与断句。</h3>
+      </div>
+      <div class="scope-list">
+        <label v-for="node in scopeNodes" :key="node.id" class="scope-row">
+          <input
+            type="checkbox"
+            :checked="node.included"
+            :data-test="`scope-included-${node.id}`"
+            @change="setScopeIncludedFromEvent(node, $event)"
+          />
+          <span :style="{ paddingLeft: `${Math.max(0, node.level - 1) * 12}px` }">
+            {{ node.title }}
+          </span>
+          <small>{{ node.content_type }} · {{ node.sentence_count }} 句</small>
+        </label>
+      </div>
+      <button data-test="confirm-scope" type="button" @click="submitScope">确认范围</button>
+    </section>
   </section>
 </template>

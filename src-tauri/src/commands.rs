@@ -14,6 +14,8 @@ use crate::{
     domain::{ImportReport, ReaderSentence, ReaderView},
     error::{JudouError, Result},
     ingest::import::{import_epub as import_epub_file, ImportOptions},
+    repo::{ScopeNode, ScopeNodeUpdate},
+    segment::segment_paragraph_with_notices,
 };
 
 pub const PING_EVENT: &str = "ping://pong";
@@ -195,6 +197,24 @@ pub async fn get_import_report(app: AppHandle, book_id: i64) -> Result<ImportRep
     let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
     let repo = crate::repo::SqliteRepo::new(&connection);
     repo.get_import_report(book_id)
+}
+
+#[tauri::command]
+pub async fn get_scope_nodes(app: AppHandle, book_id: i64) -> Result<Vec<ScopeNode>> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.list_scope_nodes(book_id)
+}
+
+#[tauri::command]
+pub async fn confirm_scope(
+    app: AppHandle,
+    book_id: i64,
+    nodes: Vec<ScopeNodeUpdate>,
+) -> Result<ImportReport> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.confirm_scope(book_id, &nodes, segment_paragraph_with_notices)
 }
 
 #[tauri::command]

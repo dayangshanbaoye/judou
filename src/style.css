@@ -123,6 +123,38 @@ button {
   margin: var(--sp-1) 0 0;
 }
 
+.scope-panel {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+}
+
+.scope-panel h3 {
+  margin: 0;
+}
+
+.scope-list {
+  display: grid;
+  gap: var(--sp-2);
+  max-height: 320px;
+  overflow: auto;
+}
+
+.scope-row {
+  align-items: center;
+  background: var(--bg-subtle);
+  border-radius: var(--r-md);
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: auto 1fr auto;
+  padding: var(--sp-2);
+}
+
+.scope-row small {
+  color: var(--text-2);
+}
+
 .reader-panel {
   display: grid;
   gap: var(--sp-4);

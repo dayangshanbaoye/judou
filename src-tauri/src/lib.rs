@@ -17,6 +17,8 @@ pub fn run() -> tauri::Result<()> {
             commands::import_epub,
             commands::get_import_report,
             commands::get_import_job,
+            commands::get_scope_nodes,
+            commands::confirm_scope,
             commands::get_reader_view,
             commands::update_sentence_status,
             commands::merge_sentences,

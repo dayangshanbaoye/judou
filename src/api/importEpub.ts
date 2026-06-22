@@ -18,6 +18,23 @@ export type ImportReport = {
   sentences_imported: number
 }
 
+export type ScopeNode = {
+  id: number
+  parent_id: number | null
+  title: string
+  level: number
+  order_index: number
+  content_type: string
+  included: boolean
+  sentence_count: number
+}
+
+export type ScopeNodeUpdate = {
+  id: number
+  content_type: string
+  included: boolean
+}
+
 export type ImportProgressEvent = {
   job_id: string
   stage: string
@@ -62,6 +79,17 @@ export async function getImportJob(jobId: string): Promise<ImportJobStatus> {
 
 export async function getImportReport(bookId: number): Promise<ImportReport> {
   return invoke<ImportReport>('get_import_report', { bookId })
+}
+
+export async function getScopeNodes(bookId: number): Promise<ScopeNode[]> {
+  return invoke<ScopeNode[]>('get_scope_nodes', { bookId })
+}
+
+export async function confirmScope(
+  bookId: number,
+  nodes: ScopeNodeUpdate[],
+): Promise<ImportReport> {
+  return invoke<ImportReport>('confirm_scope', { bookId, nodes })
 }
 
 export async function onImportProgress(
