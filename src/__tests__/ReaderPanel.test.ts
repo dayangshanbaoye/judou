@@ -171,19 +171,28 @@ describe('ReaderPanel', () => {
 
     expect(mergeSentences).toHaveBeenCalledWith([1001, 1002])
     expect(getReaderView).toHaveBeenLastCalledWith(7, 10)
+    expect(wrapper.text()).toContain('已合并句子，并写入处理台账')
   })
 
-  it('splits the active sentence at the given offset', async () => {
+  it('opens a clear split panel and splits the active sentence', async () => {
     const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
     await flushPromises()
 
+    expect(wrapper.text()).toContain('拆分这句')
+    expect(wrapper.text()).not.toContain('设为拆分')
+
     await wrapper.get('[data-test="split-target-1001"]').trigger('click')
+    expect(wrapper.text()).toContain('正在拆分')
+    expect(wrapper.text()).toContain('There is, perhaps, no more abused phrase.')
+    expect(wrapper.text()).toContain('在下方输入拆分位置')
+
     await wrapper.get('[data-test="split-offset"]').setValue('9')
     await wrapper.get('[data-test="split-active"]').trigger('click')
     await flushPromises()
 
     expect(splitSentence).toHaveBeenCalledWith(1001, 9)
     expect(getReaderView).toHaveBeenLastCalledWith(7, 10)
+    expect(wrapper.text()).toContain('已拆分句子，并写入处理台账')
   })
 })
 

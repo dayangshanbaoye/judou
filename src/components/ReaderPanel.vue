@@ -16,8 +16,9 @@ const props = defineProps<{
 const view = ref<ReaderView | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 const selectedSentenceIds = ref<number[]>([])
-const splitSentenceId = ref<number | null>(null)
+const splitTarget = ref<ReaderSentence | null>(null)
 const splitOffset = ref('')
 
 async function loadReader(tocNodeId?: number) {
@@ -56,32 +57,48 @@ function toggleSentenceSelectionFromEvent(sentenceId: number, event: Event) {
   }
 }
 
+function clearFeedback() {
+  errorMessage.value = ''
+  successMessage.value = ''
+}
+
 async function mergeSelectedSentences() {
   if (selectedSentenceIds.value.length < 2 || !view.value) {
     errorMessage.value = '请至少选择两个连续句子'
+    successMessage.value = ''
     return
   }
-  errorMessage.value = ''
+  clearFeedback()
   await mergeSentences(selectedSentenceIds.value)
   selectedSentenceIds.value = []
   await loadReader(view.value.active_toc_node_id)
+  successMessage.value = '已合并句子，并写入处理台账'
 }
 
 async function splitActiveSentence() {
-  if (!splitSentenceId.value || !view.value) {
+  if (!splitTarget.value || !view.value) {
     errorMessage.value = '请先选择要拆分的句子'
+    successMessage.value = ''
     return
   }
   const parsedOffset = Number.parseInt(splitOffset.value, 10)
   if (!Number.isFinite(parsedOffset) || parsedOffset <= 0) {
     errorMessage.value = '请输入合法拆分 offset'
+    successMessage.value = ''
     return
   }
-  errorMessage.value = ''
-  await splitSentence(splitSentenceId.value, parsedOffset)
-  splitSentenceId.value = null
+  clearFeedback()
+  await splitSentence(splitTarget.value.id, parsedOffset)
+  splitTarget.value = null
   splitOffset.value = ''
   await loadReader(view.value.active_toc_node_id)
+  successMessage.value = '已拆分句子，并写入处理台账'
+}
+
+function chooseSplitTarget(sentence: ReaderSentence) {
+  clearFeedback()
+  splitTarget.value = sentence
+  splitOffset.value = ''
 }
 
 onMounted(() => loadReader())
@@ -102,6 +119,7 @@ watch(
     <p v-if="!bookId" class="reader-empty">导入一本书后显示阅读器。</p>
     <p v-else-if="loading" class="status">正在加载阅读器…</p>
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <p v-if="successMessage" class="success">{{ successMessage }}</p>
 
     <div v-if="view" class="reader-layout">
       <aside class="reader-toc">
@@ -132,11 +150,20 @@ watch(
           <button data-test="merge-selected" type="button" @click="mergeSelectedSentences">
             合并选中句子
           </button>
+          <span class="toolbar-hint">勾选两个或更多连续句子后合并；系统会写入处理台账。</span>
+        </div>
+
+        <div v-if="splitTarget" class="split-panel" data-test="split-panel">
+          <div>
+            <p class="panel-label">正在拆分</p>
+            <p class="split-target-text">{{ splitTarget.text }}</p>
+            <p class="context-line">在下方输入拆分位置；当前版本按英文文本 offset 拆分。</p>
+          </div>
           <label>
             <span>拆分 offset</span>
             <input v-model="splitOffset" data-test="split-offset" inputmode="numeric" />
           </label>
-          <button class="secondary-button" data-test="split-active" type="button" @click="splitActiveSentence">
+          <button data-test="split-active" type="button" @click="splitActiveSentence">
             拆分当前句子
           </button>
         </div>
@@ -164,9 +191,9 @@ watch(
               class="secondary-button"
               :data-test="`split-target-${sentence.id}`"
               type="button"
-              @click="splitSentenceId = sentence.id"
+              @click="chooseSplitTarget(sentence)"
             >
-              设为拆分
+              拆分这句
             </button>
             <button
               class="secondary-button"
