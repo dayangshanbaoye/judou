@@ -15,6 +15,7 @@ use crate::{
         ContentType, TocNode,
     },
     repo::{BookDraft, ChapterParagraphs, SqliteRepo},
+    segment::segment_paragraph_with_notices,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,6 +79,7 @@ pub fn import_epub(
         &toc_nodes,
         &chapter_paragraphs,
     )?;
+    let sentences_imported = repo.segment_book_paragraphs(book_id, segment_paragraph_with_notices)?;
 
     Ok(ImportedBook {
         book_id,
@@ -91,6 +93,7 @@ pub fn import_epub(
             excluded_toc_nodes: stats.excluded,
             chapters_imported: included_hrefs.len(),
             paragraphs_imported,
+            sentences_imported,
         },
     })
 }

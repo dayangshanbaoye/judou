@@ -53,6 +53,7 @@ describe('ImportPanel', () => {
         excluded_toc_nodes: 11,
         chapters_imported: 2,
         paragraphs_imported: 101,
+        sentences_imported: 233,
       },
     })
     await wrapper.vm.$nextTick()
@@ -60,6 +61,7 @@ describe('ImportPanel', () => {
     expect(wrapper.text()).toContain('Inside the Box')
     expect(wrapper.text()).toContain('31')
     expect(wrapper.text()).toContain('101')
+    expect(wrapper.text()).toContain('233')
   })
 
   it('renders a progress bar', () => {

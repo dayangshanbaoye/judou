@@ -191,6 +191,10 @@ onUnmounted(() => {
         <dt>段落</dt>
         <dd>{{ report.paragraphs_imported }}</dd>
       </div>
+      <div>
+        <dt>句子</dt>
+        <dd>{{ report.sentences_imported }}</dd>
+      </div>
     </dl>
   </section>
 </template>

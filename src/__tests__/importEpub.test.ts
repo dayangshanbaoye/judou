@@ -10,7 +10,11 @@ vi.mock('@tauri-apps/api/core', () => ({
       return { job_id: `job-for-${(payload as { path: string }).path}` }
     }
     if (command === 'get_import_report') {
-      return { book_id: (payload as { bookId: number }).bookId, title: 'Inside the Box' }
+      return {
+        book_id: (payload as { bookId: number }).bookId,
+        title: 'Inside the Box',
+        sentences_imported: 233,
+      }
     }
     throw new Error(`unexpected command ${command}`)
   }),

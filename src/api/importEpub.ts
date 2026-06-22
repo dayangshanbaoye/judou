@@ -15,6 +15,7 @@ export type ImportReport = {
   excluded_toc_nodes: number
   chapters_imported: number
   paragraphs_imported: number
+  sentences_imported: number
 }
 
 export type ImportProgressEvent = {

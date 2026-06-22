@@ -4,6 +4,7 @@ use crate::{
     domain::ImportReport,
     error::{JudouError, Result},
     ingest::epub::{ContentType, ExtractedParagraph, TocNode},
+    segment::{SegmentedSentence, SegmentationOutput},
 };
 
 pub struct SqliteRepo<'connection> {
@@ -81,11 +82,175 @@ impl<'connection> SqliteRepo<'connection> {
             .map_err(Into::into)
     }
 
+    pub fn find_paragraph(
+        &self,
+        book_id: i64,
+        source_href: &str,
+        paragraph_order_index: usize,
+    ) -> Result<StoredParagraph> {
+        self.connection
+            .query_row(
+                "SELECT id, source_href, source_path, clean_text
+                 FROM paragraphs
+                 WHERE book_id = ?1 AND source_href = ?2 AND order_index = ?3",
+                params![book_id, source_href, paragraph_order_index as i64],
+                |row| {
+                    Ok(StoredParagraph {
+                        id: row.get(0)?,
+                        source_href: row.get(1)?,
+                        source_path: row.get(2)?,
+                        clean_text: row.get(3)?,
+                    })
+                },
+            )
+            .map_err(Into::into)
+    }
+
+    pub fn insert_sentences(
+        &self,
+        paragraph_id: i64,
+        sentences: &[SegmentedSentence],
+    ) -> Result<()> {
+        let (book_id, clean_text): (i64, String) = self.connection.query_row(
+            "SELECT book_id, clean_text FROM paragraphs WHERE id = ?1",
+            params![paragraph_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+
+        let joined = sentences
+            .iter()
+            .map(|sentence| sentence.text.as_str())
+            .collect::<String>();
+        if joined != clean_text {
+            return Err(JudouError::Validation(
+                "segmented sentences do not reconstruct source paragraph".to_string(),
+            ));
+        }
+
+        self.connection.execute(
+            "DELETE FROM sentences WHERE paragraph_id = ?1",
+            params![paragraph_id],
+        )?;
+
+        for (order_index, sentence) in sentences.iter().enumerate() {
+            self.connection.execute(
+                "INSERT INTO sentences(book_id, paragraph_id, order_index, text, normalized_text, start_offset, end_offset, segmentation_method, status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'rule', 'unread')",
+                params![
+                    book_id,
+                    paragraph_id,
+                    order_index as i64,
+                    sentence.text,
+                    sentence.text.trim(),
+                    sentence.start_offset as i64,
+                    sentence.end_offset as i64,
+                ],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    pub fn segment_book_paragraphs(
+        &self,
+        book_id: i64,
+        segmenter: fn(&str) -> SegmentationOutput,
+    ) -> Result<usize> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, source_href, source_path, clean_text FROM paragraphs WHERE book_id = ?1 ORDER BY id",
+        )?;
+        let rows = statement.query_map(params![book_id], |row| {
+            Ok(StoredParagraph {
+                id: row.get(0)?,
+                source_href: row.get(1)?,
+                source_path: row.get(2)?,
+                clean_text: row.get(3)?,
+            })
+        })?;
+
+        let mut paragraphs = Vec::new();
+        for row in rows {
+            paragraphs.push(row?);
+        }
+
+        let mut sentence_count = 0usize;
+        for paragraph in paragraphs {
+            let output = segmenter(&paragraph.clean_text);
+            sentence_count += output.sentences.len();
+            self.insert_sentences(paragraph.id, &output.sentences)?;
+            for notice in output.notices {
+                self.connection.execute(
+                    "INSERT INTO processing_log(book_id, stage, severity, location_ref, raw_snippet, action_taken, source, resolved)
+                     VALUES (?1, 'segment', 'info', ?2, ?3, ?4, 'rule', 0)",
+                    params![
+                        book_id,
+                        format!(
+                            "{}:{}@{}",
+                            paragraph.source_href, paragraph.source_path, notice.offset
+                        ),
+                        notice.snippet,
+                        format!("{}: {}", notice.rule_name, notice.action_taken),
+                    ],
+                )?;
+            }
+        }
+
+        Ok(sentence_count)
+    }
+
+    pub fn find_sentence_trace(
+        &self,
+        book_id: i64,
+        source_href: &str,
+        paragraph_order_index: usize,
+        sentence_order_index: usize,
+    ) -> Result<SentenceTrace> {
+        self.connection
+            .query_row(
+                "SELECT b.title, t.title, p.clean_text, s.text, s.segmentation_method, s.status
+                 FROM sentences s
+                 JOIN paragraphs p ON p.id = s.paragraph_id
+                 JOIN toc_nodes t ON t.id = p.toc_node_id
+                 JOIN books b ON b.id = s.book_id
+                 WHERE s.book_id = ?1
+                   AND p.source_href = ?2
+                   AND p.order_index = ?3
+                   AND s.order_index = ?4",
+                params![
+                    book_id,
+                    source_href,
+                    paragraph_order_index as i64,
+                    sentence_order_index as i64,
+                ],
+                |row| {
+                    Ok(SentenceTrace {
+                        book_title: row.get(0)?,
+                        toc_title: row.get(1)?,
+                        paragraph_text: row.get(2)?,
+                        sentence_text: row.get(3)?,
+                        segmentation_method: row.get(4)?,
+                        status: row.get(5)?,
+                    })
+                },
+            )
+            .map_err(Into::into)
+    }
+
     pub fn count_toc_nodes(&self, book_id: i64) -> Result<i64> {
         self.connection
             .query_row(
                 "SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1",
                 params![book_id],
+                |row| row.get(0),
+            )
+            .map_err(Into::into)
+    }
+
+    pub fn count_processing_log(&self, book_id: i64, stage: &str) -> Result<i64> {
+        self.connection
+            .query_row(
+                "SELECT COUNT(*) FROM processing_log WHERE book_id = ?1 AND stage = ?2",
+                params![book_id, stage],
                 |row| row.get(0),
             )
             .map_err(Into::into)
@@ -127,6 +292,8 @@ impl<'connection> SqliteRepo<'connection> {
         )? as usize;
         let paragraphs_imported =
             self.count_i64("SELECT COUNT(*) FROM paragraphs WHERE book_id = ?1", book_id)? as usize;
+        let sentences_imported =
+            self.count_i64("SELECT COUNT(*) FROM sentences WHERE book_id = ?1", book_id)? as usize;
 
         Ok(ImportReport {
             book_id,
@@ -138,6 +305,7 @@ impl<'connection> SqliteRepo<'connection> {
             excluded_toc_nodes,
             chapters_imported,
             paragraphs_imported,
+            sentences_imported,
         })
     }
 
@@ -207,6 +375,24 @@ pub struct ParagraphTrace {
     pub book_title: String,
     pub toc_title: String,
     pub clean_text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredParagraph {
+    pub id: i64,
+    pub source_href: String,
+    pub source_path: String,
+    pub clean_text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SentenceTrace {
+    pub book_title: String,
+    pub toc_title: String,
+    pub paragraph_text: String,
+    pub sentence_text: String,
+    pub segmentation_method: String,
+    pub status: String,
 }
 
 fn content_type_value(content_type: ContentType) -> &'static str {

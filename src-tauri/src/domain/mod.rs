@@ -11,4 +11,5 @@ pub struct ImportReport {
     pub excluded_toc_nodes: usize,
     pub chapters_imported: usize,
     pub paragraphs_imported: usize,
+    pub sentences_imported: usize,
 }

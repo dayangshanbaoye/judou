@@ -189,6 +189,7 @@ fn reference_epub_imports_partial_book_and_returns_report() {
     assert_eq!(imported.report.excluded_toc_nodes, 11);
     assert_eq!(imported.report.chapters_imported, 2);
     assert!(imported.report.paragraphs_imported > 80);
+    assert!(imported.report.sentences_imported > imported.report.paragraphs_imported);
 
     let repo = SqliteRepo::new(&connection);
     let trace = repo
@@ -224,4 +225,5 @@ fn import_report_can_be_rebuilt_from_database() {
     assert_eq!(report.title_only_toc_nodes, 4);
     assert_eq!(report.excluded_toc_nodes, 11);
     assert_eq!(report.paragraphs_imported, imported.report.paragraphs_imported);
+    assert_eq!(report.sentences_imported, imported.report.sentences_imported);
 }

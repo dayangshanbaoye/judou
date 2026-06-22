@@ -31,7 +31,7 @@ type JudouError = {
 | `list_books` | `—` | `Book[]` | 含进度统计（句数/已精读/卡片/今日待复习） |
 | `get_book` | `{ book_id }` | `Book` | |
 | `delete_book` | `{ book_id }` | `void` | 级联清理下游数据与音频文件 |
-| `get_import_report` | `{ book_id }` | `ImportReport` | 从本地库重建导入报告；当前含 TOC/段落计数，句子/异常计数在 Phase 2 后补齐 |
+| `get_import_report` | `{ book_id }` | `ImportReport` | 从本地库重建导入报告；当前含 TOC/段落/句子计数，异常计数后续补齐 |
 | `confirm_scope` | `{ book_id, nodes: {id, content_type, included}[] }` | `void` | 范围确认页提交；之后才执行断句落库 |
 
 **事件**：`import://progress` → `{ job_id, stage, percent, message }`；`import://done` → `{ job_id, book_id, report }`；`import://error` → `{ job_id, error }`。
@@ -48,6 +48,7 @@ type ImportReport = {
   excluded_toc_nodes:number;
   chapters_imported:number;
   paragraphs_imported:number;
+  sentences_imported:number;
 };
 ```
 
