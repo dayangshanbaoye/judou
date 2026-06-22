@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   getReaderView,
   mergeSentences,
@@ -20,6 +20,22 @@ const successMessage = ref('')
 const selectedSentenceIds = ref<number[]>([])
 const splitTarget = ref<ReaderSentence | null>(null)
 const splitOffset = ref('')
+const readerMode = ref<'continuous' | 'focus' | 'quiz'>('continuous')
+const activeSentenceIndex = ref(0)
+const answerRevealed = ref(false)
+
+const flatSentences = computed(() =>
+  view.value
+    ? view.value.paragraphs.flatMap((paragraph) =>
+        paragraph.sentences.map((sentence) => ({
+          sentence,
+          sourceHref: paragraph.source_href,
+          paragraphOrderIndex: paragraph.order_index,
+        })),
+      )
+    : [],
+)
+const activeSentenceEntry = computed(() => flatSentences.value[activeSentenceIndex.value])
 
 async function loadReader(tocNodeId?: number) {
   if (!props.bookId) return
@@ -30,6 +46,8 @@ async function loadReader(tocNodeId?: number) {
       tocNodeId === undefined
         ? await getReaderView(props.bookId)
         : await getReaderView(props.bookId, tocNodeId)
+    activeSentenceIndex.value = 0
+    answerRevealed.value = false
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error)
   } finally {
@@ -101,6 +119,28 @@ function chooseSplitTarget(sentence: ReaderSentence) {
   splitOffset.value = ''
 }
 
+function setReaderMode(mode: 'continuous' | 'focus' | 'quiz') {
+  readerMode.value = mode
+  activeSentenceIndex.value = 0
+  answerRevealed.value = false
+  clearFeedback()
+}
+
+function showPreviousSentence() {
+  activeSentenceIndex.value = Math.max(0, activeSentenceIndex.value - 1)
+  answerRevealed.value = false
+}
+
+function showNextSentence() {
+  activeSentenceIndex.value = Math.min(flatSentences.value.length - 1, activeSentenceIndex.value + 1)
+  answerRevealed.value = false
+}
+
+async function markActiveUnderstood() {
+  if (!activeSentenceEntry.value) return
+  await markUnderstood(activeSentenceEntry.value.sentence)
+}
+
 onMounted(() => loadReader())
 
 watch(
@@ -146,6 +186,33 @@ watch(
           </span>
         </nav>
 
+        <div class="mode-tabs" role="group" aria-label="阅读模式">
+          <button
+            :class="{ active: readerMode === 'continuous' }"
+            data-test="mode-continuous"
+            type="button"
+            @click="setReaderMode('continuous')"
+          >
+            连续阅读
+          </button>
+          <button
+            :class="{ active: readerMode === 'focus' }"
+            data-test="mode-focus"
+            type="button"
+            @click="setReaderMode('focus')"
+          >
+            逐句精读
+          </button>
+          <button
+            :class="{ active: readerMode === 'quiz' }"
+            data-test="mode-quiz"
+            type="button"
+            @click="setReaderMode('quiz')"
+          >
+            自测模式
+          </button>
+        </div>
+
         <div class="correction-toolbar">
           <button data-test="merge-selected" type="button" @click="mergeSelectedSentences">
             合并选中句子
@@ -168,7 +235,58 @@ watch(
           </button>
         </div>
 
+        <section v-if="readerMode === 'focus' || readerMode === 'quiz'" class="focus-card">
+          <template v-if="activeSentenceEntry">
+            <p class="context-line">
+              {{ activeSentenceEntry.sourceHref }} · #{{ activeSentenceEntry.paragraphOrderIndex }}
+            </p>
+            <p class="panel-label">第 {{ activeSentenceIndex + 1 }} / {{ flatSentences.length }} 句</p>
+            <p v-if="readerMode === 'quiz' && !answerRevealed" class="quiz-placeholder">
+              先回想，再揭示原句
+            </p>
+            <p v-else class="focus-sentence">{{ activeSentenceEntry.sentence.text }}</p>
+            <div class="focus-actions">
+              <button
+                class="secondary-button"
+                data-test="focus-prev"
+                type="button"
+                :disabled="activeSentenceIndex === 0"
+                @click="showPreviousSentence"
+              >
+                上一句
+              </button>
+              <button
+                v-if="readerMode === 'quiz' && !answerRevealed"
+                data-test="reveal-answer"
+                type="button"
+                @click="answerRevealed = true"
+              >
+                揭示原句
+              </button>
+              <button
+                v-else
+                class="secondary-button"
+                data-test="focus-understood"
+                type="button"
+                @click="markActiveUnderstood"
+              >
+                标记 understood
+              </button>
+              <button
+                class="secondary-button"
+                data-test="focus-next"
+                type="button"
+                :disabled="activeSentenceIndex >= flatSentences.length - 1"
+                @click="showNextSentence"
+              >
+                下一句
+              </button>
+            </div>
+          </template>
+        </section>
+
         <section
+          v-if="readerMode === 'continuous'"
           v-for="paragraph in view.paragraphs"
           :key="paragraph.id"
           class="reader-paragraph"

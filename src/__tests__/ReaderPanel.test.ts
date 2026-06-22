@@ -194,6 +194,46 @@ describe('ReaderPanel', () => {
     expect(getReaderView).toHaveBeenLastCalledWith(7, 10)
     expect(wrapper.text()).toContain('已拆分句子，并写入处理台账')
   })
+
+  it('switches from continuous reading to focused sentence mode', async () => {
+    const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('连续阅读')
+    expect(wrapper.text()).toContain('逐句精读')
+    expect(wrapper.text()).toContain('自测模式')
+    expect(wrapper.text()).toContain('There is, perhaps, no more abused phrase.')
+    expect(wrapper.text()).toContain('Creativity can be practiced.')
+
+    await wrapper.get('[data-test="mode-focus"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('第 1 / 2 句')
+    expect(wrapper.text()).toContain('There is, perhaps, no more abused phrase.')
+    expect(wrapper.text()).not.toContain('Creativity can be practiced.')
+
+    await wrapper.get('[data-test="focus-next"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('第 2 / 2 句')
+    expect(wrapper.text()).toContain('Creativity can be practiced.')
+  })
+
+  it('hides the active sentence in self-test mode until revealed', async () => {
+    const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
+    await flushPromises()
+
+    await wrapper.get('[data-test="mode-quiz"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('先回想，再揭示原句')
+    expect(wrapper.text()).not.toContain('There is, perhaps, no more abused phrase.')
+
+    await wrapper.get('[data-test="reveal-answer"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('There is, perhaps, no more abused phrase.')
+  })
 })
 
 async function flushPromises() {

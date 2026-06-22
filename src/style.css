@@ -214,6 +214,22 @@ button {
   overflow: auto;
 }
 
+.mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.mode-tabs button {
+  background: var(--bg-subtle);
+  color: var(--text-1);
+}
+
+.mode-tabs button.active {
+  background: var(--accent);
+  color: white;
+}
+
 .correction-toolbar {
   align-items: center;
   background: var(--bg-subtle);
@@ -255,6 +271,36 @@ button {
   font-size: var(--text-lg);
   line-height: 1.6;
   margin: var(--sp-1) 0;
+}
+
+.focus-card {
+  background: var(--bg-subtle);
+  border-radius: var(--r-lg);
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+}
+
+.focus-sentence,
+.quiz-placeholder {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.quiz-placeholder {
+  color: var(--text-2);
+}
+
+.focus-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.focus-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .reader-paragraph {
