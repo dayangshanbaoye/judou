@@ -2,8 +2,10 @@
 import { ref } from 'vue'
 import { ping } from './api/ping'
 import ImportPanel from './components/ImportPanel.vue'
+import ReaderPanel from './components/ReaderPanel.vue'
 
 const message = ref('未连接')
+const selectedBookId = ref<number | null>(null)
 
 async function checkBackend() {
   const response = await ping('judou')
@@ -19,6 +21,7 @@ async function checkBackend() {
       <button type="button" @click="checkBackend">Ping 后端</button>
       <p class="status">{{ message }}</p>
     </section>
-    <ImportPanel />
+    <ImportPanel @imported="selectedBookId = $event" />
+    <ReaderPanel :book-id="selectedBookId" />
   </main>
 </template>

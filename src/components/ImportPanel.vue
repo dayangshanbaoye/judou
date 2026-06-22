@@ -18,6 +18,9 @@ const statusMessage = ref('等待选择 EPUB 文件路径')
 const percent = ref(0)
 const report = ref<ImportReport | null>(null)
 const errorMessage = ref('')
+const emit = defineEmits<{
+  imported: [bookId: number]
+}>()
 let pollTimer: number | undefined
 const unlisteners: Array<() => void> = []
 
@@ -81,6 +84,7 @@ function applyJobStatus(status: {
   percent.value = status.percent
   statusMessage.value = status.message
   if (status.report) report.value = status.report
+  if (status.report) emit('imported', status.report.book_id)
   if (status.error) errorMessage.value = status.error.message
 }
 

@@ -1,10 +1,12 @@
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::{
-    domain::ImportReport,
+    domain::{
+        ImportReport, ReaderBreadcrumb, ReaderParagraph, ReaderSentence, ReaderTocNode, ReaderView,
+    },
     error::{JudouError, Result},
     ingest::epub::{ContentType, ExtractedParagraph, TocNode},
-    segment::{SegmentedSentence, SegmentationOutput},
+    segment::{SegmentationOutput, SegmentedSentence},
 };
 
 pub struct SqliteRepo<'connection> {
@@ -272,8 +274,7 @@ impl<'connection> SqliteRepo<'connection> {
             book_id,
         )? as usize;
         let toc_nodes_total =
-            self.count_i64("SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1", book_id)?
-                as usize;
+            self.count_i64("SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1", book_id)? as usize;
         let included_toc_nodes = self.count_i64(
             "SELECT COUNT(*) FROM toc_nodes WHERE book_id = ?1 AND included = 1",
             book_id,
@@ -290,8 +291,10 @@ impl<'connection> SqliteRepo<'connection> {
             "SELECT COUNT(DISTINCT source_href) FROM paragraphs WHERE book_id = ?1",
             book_id,
         )? as usize;
-        let paragraphs_imported =
-            self.count_i64("SELECT COUNT(*) FROM paragraphs WHERE book_id = ?1", book_id)? as usize;
+        let paragraphs_imported = self.count_i64(
+            "SELECT COUNT(*) FROM paragraphs WHERE book_id = ?1",
+            book_id,
+        )? as usize;
         let sentences_imported =
             self.count_i64("SELECT COUNT(*) FROM sentences WHERE book_id = ?1", book_id)? as usize;
 
@@ -307,6 +310,54 @@ impl<'connection> SqliteRepo<'connection> {
             paragraphs_imported,
             sentences_imported,
         })
+    }
+
+    pub fn get_reader_view(&self, book_id: i64, toc_node_id: Option<i64>) -> Result<ReaderView> {
+        let book_title = self
+            .connection
+            .query_row(
+                "SELECT title FROM books WHERE id = ?1",
+                params![book_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or_else(|| JudouError::Validation(format!("book '{book_id}' not found")))?;
+        let active_toc_node_id = match toc_node_id {
+            Some(id) => id,
+            None => self.first_readable_toc_node_id(book_id)?,
+        };
+
+        Ok(ReaderView {
+            book_id,
+            book_title,
+            active_toc_node_id,
+            breadcrumb: self.reader_breadcrumb(active_toc_node_id)?,
+            toc_nodes: self.reader_toc_nodes(book_id)?,
+            paragraphs: self.reader_paragraphs(active_toc_node_id)?,
+        })
+    }
+
+    pub fn update_sentence_status(&self, sentence_id: i64, status: &str) -> Result<ReaderSentence> {
+        match status {
+            "unread" | "read" | "understood" | "flagged" => {}
+            _ => {
+                return Err(JudouError::Validation(format!(
+                    "invalid sentence status '{status}'"
+                )));
+            }
+        }
+
+        let changed = self.connection.execute(
+            "UPDATE sentences SET status = ?1 WHERE id = ?2",
+            params![status, sentence_id],
+        )?;
+        if changed == 0 {
+            return Err(JudouError::Validation(format!(
+                "sentence '{sentence_id}' not found"
+            )));
+        }
+
+        self.find_reader_sentence(sentence_id)
     }
 
     fn insert_toc_node(&self, book_id: i64, parent_id: Option<i64>, node: &TocNode) -> Result<i64> {
@@ -352,6 +403,142 @@ impl<'connection> SqliteRepo<'connection> {
     fn count_i64(&self, sql: &str, book_id: i64) -> Result<i64> {
         self.connection
             .query_row(sql, params![book_id], |row| row.get(0))
+            .map_err(Into::into)
+    }
+
+    fn first_readable_toc_node_id(&self, book_id: i64) -> Result<i64> {
+        self.connection
+            .query_row(
+                "SELECT t.id
+                 FROM toc_nodes t
+                 WHERE t.book_id = ?1
+                   AND t.included = 1
+                   AND EXISTS (SELECT 1 FROM paragraphs p WHERE p.toc_node_id = t.id)
+                 ORDER BY t.id
+                 LIMIT 1",
+                params![book_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .ok_or_else(|| {
+                JudouError::Validation(format!("book '{book_id}' has no readable toc node"))
+            })
+    }
+
+    fn reader_toc_nodes(&self, book_id: i64) -> Result<Vec<ReaderTocNode>> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, parent_id, title, level, order_index, content_type, included
+             FROM toc_nodes
+             WHERE book_id = ?1
+             ORDER BY id",
+        )?;
+        let rows = statement.query_map(params![book_id], |row| {
+            let included: i64 = row.get(6)?;
+            Ok(ReaderTocNode {
+                id: row.get(0)?,
+                parent_id: row.get(1)?,
+                title: row.get(2)?,
+                level: row.get(3)?,
+                order_index: row.get(4)?,
+                content_type: row.get(5)?,
+                included: included != 0,
+            })
+        })?;
+
+        let mut nodes = Vec::new();
+        for row in rows {
+            nodes.push(row?);
+        }
+        Ok(nodes)
+    }
+
+    fn reader_breadcrumb(&self, toc_node_id: i64) -> Result<Vec<ReaderBreadcrumb>> {
+        let mut breadcrumb = Vec::new();
+        let mut current_id = Some(toc_node_id);
+        while let Some(id) = current_id {
+            let node = self
+                .connection
+                .query_row(
+                    "SELECT parent_id, title FROM toc_nodes WHERE id = ?1",
+                    params![id],
+                    |row| Ok((row.get::<_, Option<i64>>(0)?, row.get::<_, String>(1)?)),
+                )
+                .optional()?
+                .ok_or_else(|| JudouError::Validation(format!("toc node '{id}' not found")))?;
+            breadcrumb.push(ReaderBreadcrumb { id, title: node.1 });
+            current_id = node.0;
+        }
+        breadcrumb.reverse();
+        Ok(breadcrumb)
+    }
+
+    fn reader_paragraphs(&self, toc_node_id: i64) -> Result<Vec<ReaderParagraph>> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, toc_node_id, order_index, source_href
+             FROM paragraphs
+             WHERE toc_node_id = ?1
+             ORDER BY order_index, id",
+        )?;
+        let rows = statement.query_map(params![toc_node_id], |row| {
+            Ok(ReaderParagraph {
+                id: row.get(0)?,
+                toc_node_id: row.get(1)?,
+                order_index: row.get(2)?,
+                source_href: row.get(3)?,
+                sentences: Vec::new(),
+            })
+        })?;
+
+        let mut paragraphs = Vec::new();
+        for row in rows {
+            let mut paragraph = row?;
+            paragraph.sentences = self.reader_sentences(paragraph.id)?;
+            paragraphs.push(paragraph);
+        }
+        Ok(paragraphs)
+    }
+
+    fn reader_sentences(&self, paragraph_id: i64) -> Result<Vec<ReaderSentence>> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, paragraph_id, order_index, text, status
+             FROM sentences
+             WHERE paragraph_id = ?1
+             ORDER BY order_index, id",
+        )?;
+        let rows = statement.query_map(params![paragraph_id], |row| {
+            Ok(ReaderSentence {
+                id: row.get(0)?,
+                paragraph_id: row.get(1)?,
+                order_index: row.get(2)?,
+                text: row.get(3)?,
+                status: row.get(4)?,
+            })
+        })?;
+
+        let mut sentences = Vec::new();
+        for row in rows {
+            sentences.push(row?);
+        }
+        Ok(sentences)
+    }
+
+    fn find_reader_sentence(&self, sentence_id: i64) -> Result<ReaderSentence> {
+        self.connection
+            .query_row(
+                "SELECT id, paragraph_id, order_index, text, status
+                 FROM sentences
+                 WHERE id = ?1",
+                params![sentence_id],
+                |row| {
+                    Ok(ReaderSentence {
+                        id: row.get(0)?,
+                        paragraph_id: row.get(1)?,
+                        order_index: row.get(2)?,
+                        text: row.get(3)?,
+                        status: row.get(4)?,
+                    })
+                },
+            )
             .map_err(Into::into)
     }
 }

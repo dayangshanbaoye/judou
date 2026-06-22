@@ -16,7 +16,9 @@ pub fn run() -> tauri::Result<()> {
             commands::ping,
             commands::import_epub,
             commands::get_import_report,
-            commands::get_import_job
+            commands::get_import_job,
+            commands::get_reader_view,
+            commands::update_sentence_status
         ])
         .run(tauri::generate_context!())
 }

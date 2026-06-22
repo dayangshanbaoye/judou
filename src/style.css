@@ -29,14 +29,15 @@ button {
 }
 
 .hero,
-.import-panel {
+.import-panel,
+.reader-panel {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-lg);
-  max-width: 620px;
+  max-width: 980px;
   padding: var(--sp-12);
-  width: min(620px, calc(100vw - var(--sp-16)));
+  width: min(980px, calc(100vw - var(--sp-16)));
 }
 
 .eyebrow {
@@ -120,4 +121,77 @@ button {
   font-size: var(--text-lg);
   font-weight: var(--w-bold);
   margin: var(--sp-1) 0 0;
+}
+
+.reader-panel {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.reader-empty,
+.context-line,
+.breadcrumb {
+  color: var(--text-2);
+}
+
+.reader-layout {
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.reader-toc {
+  border-right: 1px solid var(--border);
+  display: grid;
+  gap: var(--sp-2);
+  max-height: 70vh;
+  overflow: auto;
+  padding-right: var(--sp-4);
+}
+
+.reader-toc h3 {
+  margin: 0 0 var(--sp-2);
+}
+
+.reader-toc button {
+  background: transparent;
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  padding: var(--sp-2);
+  text-align: left;
+}
+
+.reader-toc button.active {
+  background: var(--bg-subtle);
+  color: var(--text-link);
+}
+
+.reader-toc button:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.reader-main {
+  display: grid;
+  gap: var(--sp-4);
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.reader-paragraph {
+  background: var(--bg-subtle);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+
+.reader-sentence {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: space-between;
+  line-height: 1.7;
+}
+
+.reader-sentence[data-status='understood'] {
+  color: var(--green-700);
 }

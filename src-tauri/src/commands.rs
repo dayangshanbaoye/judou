@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     db,
-    domain::ImportReport,
+    domain::{ImportReport, ReaderSentence, ReaderView},
     error::{JudouError, Result},
     ingest::import::{import_epub as import_epub_file, ImportOptions},
 };
@@ -115,17 +115,19 @@ pub struct ImportJobStore {
 
 impl ImportJobStore {
     fn set(&self, status: ImportJobStatus) -> Result<()> {
-        let mut jobs = self.jobs.lock().map_err(|_| {
-            JudouError::Validation("import job store lock is poisoned".to_string())
-        })?;
+        let mut jobs = self
+            .jobs
+            .lock()
+            .map_err(|_| JudouError::Validation("import job store lock is poisoned".to_string()))?;
         jobs.insert(status.job_id.clone(), status);
         Ok(())
     }
 
     fn get(&self, job_id: &str) -> Result<Option<ImportJobStatus>> {
-        let jobs = self.jobs.lock().map_err(|_| {
-            JudouError::Validation("import job store lock is poisoned".to_string())
-        })?;
+        let jobs = self
+            .jobs
+            .lock()
+            .map_err(|_| JudouError::Validation("import job store lock is poisoned".to_string()))?;
         Ok(jobs.get(job_id).cloned())
     }
 }
@@ -184,9 +186,8 @@ pub async fn get_import_job(
     jobs: State<'_, ImportJobStore>,
     job_id: String,
 ) -> Result<ImportJobStatus> {
-    jobs.get(&job_id)?.ok_or_else(|| {
-        JudouError::Validation(format!("import job '{job_id}' not found"))
-    })
+    jobs.get(&job_id)?
+        .ok_or_else(|| JudouError::Validation(format!("import job '{job_id}' not found")))
 }
 
 #[tauri::command]
@@ -194,6 +195,28 @@ pub async fn get_import_report(app: AppHandle, book_id: i64) -> Result<ImportRep
     let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
     let repo = crate::repo::SqliteRepo::new(&connection);
     repo.get_import_report(book_id)
+}
+
+#[tauri::command]
+pub async fn get_reader_view(
+    app: AppHandle,
+    book_id: i64,
+    toc_node_id: Option<i64>,
+) -> Result<ReaderView> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.get_reader_view(book_id, toc_node_id)
+}
+
+#[tauri::command]
+pub async fn update_sentence_status(
+    app: AppHandle,
+    sentence_id: i64,
+    status: String,
+) -> Result<ReaderSentence> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.update_sentence_status(sentence_id, &status)
 }
 
 pub fn build_import_job_response() -> ImportJobResponse {

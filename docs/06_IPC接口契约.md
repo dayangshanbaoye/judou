@@ -57,12 +57,39 @@ type ImportReport = {
 ## 2. 阅读 / 句子
 | Command | 参数 | 返回 | 说明 |
 |---|---|---|---|
+| `get_reader_view` | `{ book_id, toc_node_id?: number|null }` | `ReaderView` | Phase 3 已落地；一次返回书名、扁平 TOC、当前节点面包屑、段落与句子流 |
+| `update_sentence_status` | `{ sentence_id, status }` | `ReaderSentence` | Phase 3 已落地；status: unread/read/understood/flagged |
 | `get_toc` | `{ book_id }` | `TocNode[]`（树） | 含每节点待复习角标 |
 | `get_sentences` | `{ toc_node_id, mode }` | `Sentence[]` | mode: 'continuous'\|'focus' |
 | `get_sentence_context` | `{ sentence_id }` | `{ breadcrumb, paragraph }` | 书>章>节>段 |
-| `set_sentence_status` | `{ sentence_id, status }` | `void` | unread/read/understood/flagged |
 | `merge_sentences` | `{ sentence_ids: number[] }` | `Sentence` | 纠错合并；写台账 |
 | `split_sentence` | `{ sentence_id, offset }` | `Sentence[]` | 纠错拆分；写台账 |
+
+`ReaderView` 当前字段：
+```ts
+type ReaderView = {
+  book_id:number;
+  book_title:string;
+  active_toc_node_id:number;
+  breadcrumb:{ id:number; title:string }[];
+  toc_nodes:{
+    id:number; parent_id:number|null; title:string; level:number;
+    order_index:number; content_type:string; included:boolean;
+  }[];
+  paragraphs:{
+    id:number; toc_node_id:number; order_index:number; source_href:string;
+    sentences:ReaderSentence[];
+  }[];
+};
+
+type ReaderSentence = {
+  id:number;
+  paragraph_id:number;
+  order_index:number;
+  text:string;
+  status:'unread'|'read'|'understood'|'flagged';
+};
+```
 
 ---
 
