@@ -2,7 +2,7 @@ use std::path::Path;
 
 use judou_lib::{
     ingest::import::{import_epub, ImportOptions},
-    repo::{ScopeNodeUpdate, SqliteRepo},
+    repo::{PromoteRuleInput, ScopeNodeUpdate, SqliteRepo},
     segment::segment_paragraph_with_notices,
 };
 
@@ -232,4 +232,51 @@ fn scope_confirmation_excludes_node_from_segmentation() {
         repo.count_processing_log(book_id, "classify").unwrap(),
         before_log_count + 1
     );
+}
+
+#[test]
+fn manual_processing_log_can_be_promoted_to_rule() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    let book_id = import_reference_book(&connection);
+    let repo = SqliteRepo::new(&connection);
+    let view = repo.get_reader_view(book_id, None).unwrap();
+    let paragraph = view
+        .paragraphs
+        .iter()
+        .find(|paragraph| paragraph.sentences.len() >= 2)
+        .unwrap();
+    let first = &paragraph.sentences[0];
+    let second = &paragraph.sentences[1];
+
+    repo.merge_sentences(&[first.id, second.id]).unwrap();
+    let logs = repo
+        .list_processing_log(Some(book_id), Some(false))
+        .unwrap();
+    let manual_log = logs
+        .iter()
+        .find(|log| log.source == "manual" && log.action_taken.contains("manual_merge"))
+        .unwrap();
+
+    let rule = repo
+        .promote_log_to_rule(
+            manual_log.id,
+            PromoteRuleInput {
+                name: "Merge adjacent sentence boundary".to_string(),
+                pattern: Some("manual_merge".to_string()),
+                action: "review_sentence_boundary".to_string(),
+                notes: Some("Created from reader correction".to_string()),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(rule.stage, "segment");
+    assert_eq!(rule.enabled, true);
+    assert_eq!(rule.version, 1);
+    let promoted_logs = repo.list_processing_log(Some(book_id), Some(true)).unwrap();
+    let promoted_log = promoted_logs
+        .iter()
+        .find(|log| log.id == manual_log.id)
+        .unwrap();
+    assert_eq!(promoted_log.rule_id, Some(rule.id));
+    assert!(promoted_log.resolved);
 }

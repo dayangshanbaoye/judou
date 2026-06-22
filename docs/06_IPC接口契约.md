@@ -152,14 +152,28 @@ type ReaderSentence = {
 | Command | 参数 | 返回 | 说明 |
 |---|---|---|---|
 | `search` | `{ query, filters? }` | `SearchResult[]` | 跨实体 FTS |
-| `list_processing_log` | `{ book_id?, resolved? }` | `LogEntry[]` | 台账 |
+| `list_processing_log` | `{ book_id?:number|null, resolved?:boolean|null }` | `LogEntry[]` | Phase 3 已落地；按书和是否解决过滤台账 |
 | `resolve_log` | `{ log_id, action }` | `void` | 标记/忽略 |
-| `promote_log_to_rule` | `{ log_id, rule }` | `Rule` | 固化为规则 |
+| `promote_log_to_rule` | `{ log_id, input:{ name, pattern?, action, notes? } }` | `Rule` | Phase 3 已落地；创建 `processing_rules` 并把台账标记 resolved |
 | `list_rules` | `{ stage? }` | `Rule[]` | |
 | `toggle_rule` | `{ rule_id, enabled }` | `void` | |
 | `get_settings` / `update_settings` | `Settings` | `Settings` | LLM/TTS/复习/数据 |
 | `set_api_key` | `{ provider, key }` | `void` | 存 keyring，**不回显、不入库** |
 | `export_data` | `{ path }` | `void` | 备份 |
+
+`LogEntry` / `Rule` 当前字段：
+```ts
+type LogEntry = {
+  id:number; book_id:number|null; stage:string; severity:string;
+  location_ref:string|null; raw_snippet:string|null; action_taken:string;
+  source:'rule'|'llm'|'manual'; rule_id:number|null; resolved:boolean; created_at:string;
+};
+
+type Rule = {
+  id:number; name:string; stage:string; pattern:string|null; action:string;
+  enabled:boolean; version:number; notes:string|null; created_at:string;
+};
+```
 
 ---
 

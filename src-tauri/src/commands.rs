@@ -14,7 +14,7 @@ use crate::{
     domain::{ImportReport, ReaderSentence, ReaderView},
     error::{JudouError, Result},
     ingest::import::{import_epub as import_epub_file, ImportOptions},
-    repo::{ScopeNode, ScopeNodeUpdate},
+    repo::{ProcessingLogEntry, ProcessingRule, PromoteRuleInput, ScopeNode, ScopeNodeUpdate},
     segment::segment_paragraph_with_notices,
 };
 
@@ -215,6 +215,28 @@ pub async fn confirm_scope(
     let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
     let repo = crate::repo::SqliteRepo::new(&connection);
     repo.confirm_scope(book_id, &nodes, segment_paragraph_with_notices)
+}
+
+#[tauri::command]
+pub async fn list_processing_log(
+    app: AppHandle,
+    book_id: Option<i64>,
+    resolved: Option<bool>,
+) -> Result<Vec<ProcessingLogEntry>> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.list_processing_log(book_id, resolved)
+}
+
+#[tauri::command]
+pub async fn promote_log_to_rule(
+    app: AppHandle,
+    log_id: i64,
+    input: PromoteRuleInput,
+) -> Result<ProcessingRule> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.promote_log_to_rule(log_id, input)
 }
 
 #[tauri::command]

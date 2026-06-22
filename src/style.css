@@ -164,6 +164,53 @@ button {
   gap: var(--sp-4);
 }
 
+.processing-log-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  gap: var(--sp-4);
+  max-width: 980px;
+  padding: var(--sp-12);
+  width: min(980px, calc(100vw - var(--sp-16)));
+}
+
+.processing-log-panel h2 {
+  margin: 0;
+}
+
+.log-list {
+  display: grid;
+  gap: var(--sp-3);
+  max-height: 520px;
+  overflow: auto;
+}
+
+.log-entry {
+  background: var(--bg-subtle);
+  border-radius: var(--r-lg);
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+}
+
+.log-entry header {
+  align-items: center;
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: space-between;
+}
+
+.log-entry p {
+  margin: 0;
+}
+
+.log-entry small,
+.log-snippet {
+  color: var(--text-2);
+}
+
 .reader-controls {
   background: var(--bg-card);
   border: 1px solid var(--border);

@@ -19,6 +19,8 @@ pub fn run() -> tauri::Result<()> {
             commands::get_import_job,
             commands::get_scope_nodes,
             commands::confirm_scope,
+            commands::list_processing_log,
+            commands::promote_log_to_rule,
             commands::get_reader_view,
             commands::update_sentence_status,
             commands::merge_sentences,

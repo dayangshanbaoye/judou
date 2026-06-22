@@ -272,6 +272,81 @@ impl<'connection> SqliteRepo<'connection> {
             .map_err(Into::into)
     }
 
+    pub fn list_processing_log(
+        &self,
+        book_id: Option<i64>,
+        resolved: Option<bool>,
+    ) -> Result<Vec<ProcessingLogEntry>> {
+        match (book_id, resolved) {
+            (Some(book_id), Some(resolved)) => self.query_processing_log(
+                "SELECT id, book_id, stage, severity, location_ref, raw_snippet, action_taken, source, rule_id, resolved, created_at
+                 FROM processing_log
+                 WHERE book_id = ?1 AND resolved = ?2
+                 ORDER BY id DESC",
+                params![book_id, bool_value(resolved)],
+            ),
+            (Some(book_id), None) => self.query_processing_log(
+                "SELECT id, book_id, stage, severity, location_ref, raw_snippet, action_taken, source, rule_id, resolved, created_at
+                 FROM processing_log
+                 WHERE book_id = ?1
+                 ORDER BY id DESC",
+                params![book_id],
+            ),
+            (None, Some(resolved)) => self.query_processing_log(
+                "SELECT id, book_id, stage, severity, location_ref, raw_snippet, action_taken, source, rule_id, resolved, created_at
+                 FROM processing_log
+                 WHERE resolved = ?1
+                 ORDER BY id DESC",
+                params![bool_value(resolved)],
+            ),
+            (None, None) => self.query_processing_log(
+                "SELECT id, book_id, stage, severity, location_ref, raw_snippet, action_taken, source, rule_id, resolved, created_at
+                 FROM processing_log
+                 ORDER BY id DESC",
+                [],
+            ),
+        }
+    }
+
+    pub fn promote_log_to_rule(
+        &self,
+        log_id: i64,
+        input: PromoteRuleInput,
+    ) -> Result<ProcessingRule> {
+        let stage = self
+            .connection
+            .query_row(
+                "SELECT stage FROM processing_log WHERE id = ?1",
+                params![log_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or_else(|| {
+                JudouError::Validation(format!("processing log '{log_id}' not found"))
+            })?;
+        validate_processing_stage(&stage)?;
+
+        self.run_manual_transaction(|| {
+            self.connection.execute(
+                "INSERT INTO processing_rules(name, stage, pattern, action, enabled, version, notes)
+                 VALUES (?1, ?2, ?3, ?4, 1, 1, ?5)",
+                params![
+                    input.name,
+                    stage,
+                    input.pattern,
+                    input.action,
+                    input.notes,
+                ],
+            )?;
+            let rule_id = self.connection.last_insert_rowid();
+            self.connection.execute(
+                "UPDATE processing_log SET rule_id = ?1, resolved = 1 WHERE id = ?2",
+                params![rule_id, log_id],
+            )?;
+            self.find_processing_rule(rule_id)
+        })
+    }
+
     pub fn get_import_report(&self, book_id: i64) -> Result<ImportReport> {
         let title = self
             .connection
@@ -631,6 +706,44 @@ impl<'connection> SqliteRepo<'connection> {
             .map_err(Into::into)
     }
 
+    fn query_processing_log<P>(&self, sql: &str, params: P) -> Result<Vec<ProcessingLogEntry>>
+    where
+        P: rusqlite::Params,
+    {
+        let mut statement = self.connection.prepare(sql)?;
+        let rows = statement.query_map(params, processing_log_entry_from_row)?;
+        let mut entries = Vec::new();
+        for row in rows {
+            entries.push(row?);
+        }
+        Ok(entries)
+    }
+
+    fn find_processing_rule(&self, rule_id: i64) -> Result<ProcessingRule> {
+        self.connection
+            .query_row(
+                "SELECT id, name, stage, pattern, action, enabled, version, notes, created_at
+                 FROM processing_rules
+                 WHERE id = ?1",
+                params![rule_id],
+                |row| {
+                    let enabled: i64 = row.get(5)?;
+                    Ok(ProcessingRule {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        stage: row.get(2)?,
+                        pattern: row.get(3)?,
+                        action: row.get(4)?,
+                        enabled: enabled != 0,
+                        version: row.get(6)?,
+                        notes: row.get(7)?,
+                        created_at: row.get(8)?,
+                    })
+                },
+            )
+            .map_err(Into::into)
+    }
+
     fn first_readable_toc_node_id(&self, book_id: i64) -> Result<i64> {
         self.connection
             .query_row(
@@ -978,6 +1091,42 @@ pub struct ScopeNodeUpdate {
     pub included: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ProcessingLogEntry {
+    pub id: i64,
+    pub book_id: Option<i64>,
+    pub stage: String,
+    pub severity: String,
+    pub location_ref: Option<String>,
+    pub raw_snippet: Option<String>,
+    pub action_taken: String,
+    pub source: String,
+    pub rule_id: Option<i64>,
+    pub resolved: bool,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ProcessingRule {
+    pub id: i64,
+    pub name: String,
+    pub stage: String,
+    pub pattern: Option<String>,
+    pub action: String,
+    pub enabled: bool,
+    pub version: i64,
+    pub notes: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct PromoteRuleInput {
+    pub name: String,
+    pub pattern: Option<String>,
+    pub action: String,
+    pub notes: Option<String>,
+}
+
 fn validate_same_paragraph(sentences: &[StoredSentenceCorrection]) -> Result<()> {
     let first = sentences
         .first()
@@ -1011,6 +1160,33 @@ fn validate_content_type(content_type: &str) -> Result<()> {
             "invalid content type '{content_type}'"
         ))),
     }
+}
+
+fn validate_processing_stage(stage: &str) -> Result<()> {
+    match stage {
+        "classify" | "clean" | "segment" | "other" => Ok(()),
+        _ => Err(JudouError::Validation(format!(
+            "invalid processing stage '{stage}'"
+        ))),
+    }
+}
+
+fn processing_log_entry_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ProcessingLogEntry> {
+    let resolved: i64 = row.get(9)?;
+    let action_taken = row.get::<_, Option<String>>(6)?.unwrap_or_default();
+    Ok(ProcessingLogEntry {
+        id: row.get(0)?,
+        book_id: row.get(1)?,
+        stage: row.get(2)?,
+        severity: row.get(3)?,
+        location_ref: row.get(4)?,
+        raw_snippet: row.get(5)?,
+        action_taken,
+        source: row.get(7)?,
+        rule_id: row.get(8)?,
+        resolved: resolved != 0,
+        created_at: row.get(10)?,
+    })
 }
 
 fn content_type_value(content_type: ContentType) -> &'static str {

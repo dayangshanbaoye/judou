@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { ping } from './api/ping'
 import ImportPanel from './components/ImportPanel.vue'
+import ProcessingLogPanel from './components/ProcessingLogPanel.vue'
 import ReaderPanel from './components/ReaderPanel.vue'
 
 const message = ref('未连接')
@@ -23,5 +24,6 @@ async function checkBackend() {
     </section>
     <ImportPanel @imported="selectedBookId = $event" />
     <ReaderPanel :book-id="selectedBookId" />
+    <ProcessingLogPanel :book-id="selectedBookId" />
   </main>
 </template>
