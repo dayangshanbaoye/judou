@@ -59,11 +59,11 @@ type ImportReport = {
 |---|---|---|---|
 | `get_reader_view` | `{ book_id, toc_node_id?: number|null }` | `ReaderView` | Phase 3 已落地；一次返回书名、扁平 TOC、当前节点面包屑、段落与句子流 |
 | `update_sentence_status` | `{ sentence_id, status }` | `ReaderSentence` | Phase 3 已落地；status: unread/read/understood/flagged |
+| `merge_sentences` | `{ sentence_ids: number[] }` | `ReaderSentence` | Phase 3 已落地；仅允许同段连续句子；写 `processing_log(source='manual')` |
+| `split_sentence` | `{ sentence_id, split_offset }` | `ReaderSentence[]` | Phase 3 已落地；按原文 byte offset 拆分；写 `processing_log(source='manual')` |
 | `get_toc` | `{ book_id }` | `TocNode[]`（树） | 含每节点待复习角标 |
 | `get_sentences` | `{ toc_node_id, mode }` | `Sentence[]` | mode: 'continuous'\|'focus' |
 | `get_sentence_context` | `{ sentence_id }` | `{ breadcrumb, paragraph }` | 书>章>节>段 |
-| `merge_sentences` | `{ sentence_ids: number[] }` | `Sentence` | 纠错合并；写台账 |
-| `split_sentence` | `{ sentence_id, offset }` | `Sentence[]` | 纠错拆分；写台账 |
 
 `ReaderView` 当前字段：
 ```ts

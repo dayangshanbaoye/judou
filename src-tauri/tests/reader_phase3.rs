@@ -94,3 +94,100 @@ fn sentence_status_can_be_marked_understood() {
         .unwrap();
     assert_eq!(updated_sentence.status, "understood");
 }
+
+#[test]
+fn adjacent_sentences_can_be_merged_and_logged_without_rewriting() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    let book_id = import_reference_book(&connection);
+    let repo = SqliteRepo::new(&connection);
+    let view = repo.get_reader_view(book_id, None).unwrap();
+    let paragraph = view
+        .paragraphs
+        .iter()
+        .find(|paragraph| paragraph.sentences.len() >= 2)
+        .unwrap();
+    let first = &paragraph.sentences[0];
+    let second = &paragraph.sentences[1];
+    let expected_text = format!("{}{}", first.text, second.text);
+    let before_log_count = repo.count_processing_log(book_id, "segment").unwrap();
+
+    let merged = repo.merge_sentences(&[first.id, second.id]).unwrap();
+    let updated_view = repo
+        .get_reader_view(book_id, Some(view.active_toc_node_id))
+        .unwrap();
+    let updated_paragraph = updated_view
+        .paragraphs
+        .iter()
+        .find(|candidate| candidate.id == paragraph.id)
+        .unwrap();
+
+    assert_eq!(merged.text, expected_text);
+    assert_eq!(merged.status, "flagged");
+    assert_eq!(updated_paragraph.sentences[0].text, expected_text);
+    assert_eq!(updated_paragraph.sentences[0].order_index, 0);
+    assert_eq!(
+        updated_paragraph
+            .sentences
+            .iter()
+            .map(|sentence| sentence.text.as_str())
+            .collect::<String>(),
+        paragraph
+            .sentences
+            .iter()
+            .map(|sentence| sentence.text.as_str())
+            .collect::<String>()
+    );
+    assert_eq!(
+        repo.count_processing_log(book_id, "segment").unwrap(),
+        before_log_count + 1
+    );
+}
+
+#[test]
+fn sentence_can_be_split_and_logged_without_rewriting() {
+    let connection = rusqlite::Connection::open_in_memory().unwrap();
+    let book_id = import_reference_book(&connection);
+    let repo = SqliteRepo::new(&connection);
+    let view = repo.get_reader_view(book_id, None).unwrap();
+    let paragraph = view
+        .paragraphs
+        .iter()
+        .find(|paragraph| !paragraph.sentences.is_empty())
+        .unwrap();
+    let sentence = &paragraph.sentences[0];
+    let split_offset = sentence.text.find(',').unwrap() + 1;
+    let expected_left = &sentence.text[..split_offset];
+    let expected_right = &sentence.text[split_offset..];
+    let before_log_count = repo.count_processing_log(book_id, "segment").unwrap();
+
+    let split = repo.split_sentence(sentence.id, split_offset).unwrap();
+    let updated_view = repo
+        .get_reader_view(book_id, Some(view.active_toc_node_id))
+        .unwrap();
+    let updated_paragraph = updated_view
+        .paragraphs
+        .iter()
+        .find(|candidate| candidate.id == paragraph.id)
+        .unwrap();
+
+    assert_eq!(split.len(), 2);
+    assert_eq!(split[0].text, expected_left);
+    assert_eq!(split[1].text, expected_right);
+    assert!(split.iter().all(|sentence| sentence.status == "flagged"));
+    assert_eq!(
+        updated_paragraph
+            .sentences
+            .iter()
+            .map(|sentence| sentence.text.as_str())
+            .collect::<String>(),
+        paragraph
+            .sentences
+            .iter()
+            .map(|sentence| sentence.text.as_str())
+            .collect::<String>()
+    );
+    assert_eq!(
+        repo.count_processing_log(book_id, "segment").unwrap(),
+        before_log_count + 1
+    );
+}

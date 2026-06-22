@@ -360,6 +360,133 @@ impl<'connection> SqliteRepo<'connection> {
         self.find_reader_sentence(sentence_id)
     }
 
+    pub fn merge_sentences(&self, sentence_ids: &[i64]) -> Result<ReaderSentence> {
+        if sentence_ids.len() < 2 {
+            return Err(JudouError::Validation(
+                "at least two sentences are required to merge".to_string(),
+            ));
+        }
+
+        let mut sentences = self.load_correction_sentences(sentence_ids)?;
+        sentences.sort_by_key(|sentence| sentence.order_index);
+        validate_same_paragraph(&sentences)?;
+        validate_consecutive_sentences(&sentences)?;
+
+        let keep = sentences
+            .first()
+            .ok_or_else(|| JudouError::Validation("no sentence selected".to_string()))?;
+        let last = sentences
+            .last()
+            .ok_or_else(|| JudouError::Validation("no sentence selected".to_string()))?;
+        let merged_text = sentences
+            .iter()
+            .map(|sentence| sentence.text.as_str())
+            .collect::<String>();
+        let merged_ids = sentences
+            .iter()
+            .map(|sentence| sentence.id.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let keep_id = keep.id;
+        let book_id = keep.book_id;
+        let paragraph_id = keep.paragraph_id;
+        let start_offset = keep.start_offset;
+        let end_offset = last.end_offset;
+
+        self.run_manual_transaction(|| {
+            self.connection.execute(
+                "UPDATE sentences
+                 SET text = ?1, normalized_text = ?2, end_offset = ?3,
+                     segmentation_method = 'manual', status = 'flagged'
+                 WHERE id = ?4",
+                params![merged_text, merged_text.trim(), end_offset, keep_id],
+            )?;
+
+            for sentence in sentences.iter().skip(1) {
+                self.connection
+                    .execute("DELETE FROM sentences WHERE id = ?1", params![sentence.id])?;
+            }
+
+            self.reorder_paragraph_sentences(paragraph_id)?;
+            self.insert_manual_processing_log(
+                book_id,
+                paragraph_id,
+                start_offset,
+                &merged_text,
+                &format!("manual_merge: merged sentence ids {merged_ids}"),
+            )?;
+            self.find_reader_sentence(keep_id)
+        })
+    }
+
+    pub fn split_sentence(
+        &self,
+        sentence_id: i64,
+        split_offset: usize,
+    ) -> Result<Vec<ReaderSentence>> {
+        let sentence = self.load_correction_sentence(sentence_id)?;
+        if split_offset == 0
+            || split_offset >= sentence.text.len()
+            || !sentence.text.is_char_boundary(split_offset)
+        {
+            return Err(JudouError::Validation(format!(
+                "invalid split offset '{split_offset}'"
+            )));
+        }
+
+        let left_text = sentence.text[..split_offset].to_string();
+        let right_text = sentence.text[split_offset..].to_string();
+        let left_end_offset = sentence
+            .start_offset
+            .map(|start_offset| start_offset + split_offset as i64);
+        let right_start_offset = left_end_offset;
+        let book_id = sentence.book_id;
+        let paragraph_id = sentence.paragraph_id;
+
+        self.run_manual_transaction(|| {
+            self.connection.execute(
+                "UPDATE sentences
+                 SET text = ?1, normalized_text = ?2, end_offset = ?3,
+                     segmentation_method = 'manual', status = 'flagged'
+                 WHERE id = ?4",
+                params![
+                    left_text,
+                    left_text.trim(),
+                    left_end_offset,
+                    sentence_id,
+                ],
+            )?;
+
+            self.connection.execute(
+                "INSERT INTO sentences(book_id, paragraph_id, order_index, text, normalized_text, start_offset, end_offset, segmentation_method, status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'manual', 'flagged')",
+                params![
+                    book_id,
+                    paragraph_id,
+                    sentence.order_index + 1,
+                    right_text,
+                    right_text.trim(),
+                    right_start_offset,
+                    sentence.end_offset,
+                ],
+            )?;
+            let inserted_id = self.connection.last_insert_rowid();
+
+            self.reorder_paragraph_sentences(paragraph_id)?;
+            self.insert_manual_processing_log(
+                book_id,
+                paragraph_id,
+                sentence.start_offset,
+                &sentence.text,
+                &format!("manual_split: split sentence id {sentence_id} at offset {split_offset}"),
+            )?;
+            Ok(vec![
+                self.find_reader_sentence(sentence_id)?,
+                self.find_reader_sentence(inserted_id)?,
+            ])
+        })
+    }
+
     fn insert_toc_node(&self, book_id: i64, parent_id: Option<i64>, node: &TocNode) -> Result<i64> {
         self.connection.execute(
             "INSERT INTO toc_nodes(book_id, parent_id, title, level, order_index, spine_href, nav_anchor, content_type, included)
@@ -541,6 +668,95 @@ impl<'connection> SqliteRepo<'connection> {
             )
             .map_err(Into::into)
     }
+
+    fn load_correction_sentences(
+        &self,
+        sentence_ids: &[i64],
+    ) -> Result<Vec<StoredSentenceCorrection>> {
+        let mut sentences = Vec::with_capacity(sentence_ids.len());
+        for sentence_id in sentence_ids {
+            sentences.push(self.load_correction_sentence(*sentence_id)?);
+        }
+        Ok(sentences)
+    }
+
+    fn load_correction_sentence(&self, sentence_id: i64) -> Result<StoredSentenceCorrection> {
+        self.connection
+            .query_row(
+                "SELECT id, book_id, paragraph_id, order_index, text, start_offset, end_offset
+                 FROM sentences
+                 WHERE id = ?1",
+                params![sentence_id],
+                |row| {
+                    Ok(StoredSentenceCorrection {
+                        id: row.get(0)?,
+                        book_id: row.get(1)?,
+                        paragraph_id: row.get(2)?,
+                        order_index: row.get(3)?,
+                        text: row.get(4)?,
+                        start_offset: row.get(5)?,
+                        end_offset: row.get(6)?,
+                    })
+                },
+            )
+            .optional()?
+            .ok_or_else(|| JudouError::Validation(format!("sentence '{sentence_id}' not found")))
+    }
+
+    fn reorder_paragraph_sentences(&self, paragraph_id: i64) -> Result<()> {
+        let mut statement = self
+            .connection
+            .prepare("SELECT id FROM sentences WHERE paragraph_id = ?1 ORDER BY order_index, id")?;
+        let rows = statement.query_map(params![paragraph_id], |row| row.get::<_, i64>(0))?;
+        let mut sentence_ids = Vec::new();
+        for row in rows {
+            sentence_ids.push(row?);
+        }
+
+        for (order_index, sentence_id) in sentence_ids.iter().enumerate() {
+            self.connection.execute(
+                "UPDATE sentences SET order_index = ?1 WHERE id = ?2",
+                params![order_index as i64, sentence_id],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn insert_manual_processing_log(
+        &self,
+        book_id: i64,
+        paragraph_id: i64,
+        offset: Option<i64>,
+        raw_snippet: &str,
+        action_taken: &str,
+    ) -> Result<()> {
+        let location_ref = match offset {
+            Some(value) => format!("paragraph:{paragraph_id}@{value}"),
+            None => format!("paragraph:{paragraph_id}"),
+        };
+        self.connection.execute(
+            "INSERT INTO processing_log(book_id, stage, severity, location_ref, raw_snippet, action_taken, source, resolved)
+             VALUES (?1, 'segment', 'warn', ?2, ?3, ?4, 'manual', 0)",
+            params![book_id, location_ref, raw_snippet, action_taken],
+        )?;
+        Ok(())
+    }
+
+    fn run_manual_transaction<T>(&self, action: impl FnOnce() -> Result<T>) -> Result<T> {
+        self.connection.execute_batch("BEGIN IMMEDIATE")?;
+        let result = action();
+        match result {
+            Ok(value) => {
+                self.connection.execute_batch("COMMIT")?;
+                Ok(value)
+            }
+            Err(error) => {
+                let _ = self.connection.execute_batch("ROLLBACK");
+                Err(error)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -580,6 +796,43 @@ pub struct SentenceTrace {
     pub sentence_text: String,
     pub segmentation_method: String,
     pub status: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StoredSentenceCorrection {
+    id: i64,
+    book_id: i64,
+    paragraph_id: i64,
+    order_index: i64,
+    text: String,
+    start_offset: Option<i64>,
+    end_offset: Option<i64>,
+}
+
+fn validate_same_paragraph(sentences: &[StoredSentenceCorrection]) -> Result<()> {
+    let first = sentences
+        .first()
+        .ok_or_else(|| JudouError::Validation("no sentence selected".to_string()))?;
+    if sentences
+        .iter()
+        .any(|sentence| sentence.paragraph_id != first.paragraph_id)
+    {
+        return Err(JudouError::Validation(
+            "selected sentences must be in the same paragraph".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_consecutive_sentences(sentences: &[StoredSentenceCorrection]) -> Result<()> {
+    for pair in sentences.windows(2) {
+        if pair[1].order_index != pair[0].order_index + 1 {
+            return Err(JudouError::Validation(
+                "selected sentences must be consecutive".to_string(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn content_type_value(content_type: ContentType) -> &'static str {

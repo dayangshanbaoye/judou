@@ -56,3 +56,14 @@ export async function updateSentenceStatus(
 ): Promise<ReaderSentence> {
   return invoke<ReaderSentence>('update_sentence_status', { sentenceId, status })
 }
+
+export async function mergeSentences(sentenceIds: number[]): Promise<ReaderSentence> {
+  return invoke<ReaderSentence>('merge_sentences', { sentenceIds })
+}
+
+export async function splitSentence(
+  sentenceId: number,
+  splitOffset: number,
+): Promise<ReaderSentence[]> {
+  return invoke<ReaderSentence[]>('split_sentence', { sentenceId, splitOffset })
+}

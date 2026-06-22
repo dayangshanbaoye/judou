@@ -18,7 +18,9 @@ pub fn run() -> tauri::Result<()> {
             commands::get_import_report,
             commands::get_import_job,
             commands::get_reader_view,
-            commands::update_sentence_status
+            commands::update_sentence_status,
+            commands::merge_sentences,
+            commands::split_sentence
         ])
         .run(tauri::generate_context!())
 }

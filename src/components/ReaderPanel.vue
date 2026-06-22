@@ -2,6 +2,8 @@
 import { onMounted, ref, watch } from 'vue'
 import {
   getReaderView,
+  mergeSentences,
+  splitSentence,
   updateSentenceStatus,
   type ReaderSentence,
   type ReaderView,
@@ -14,6 +16,9 @@ const props = defineProps<{
 const view = ref<ReaderView | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const selectedSentenceIds = ref<number[]>([])
+const splitSentenceId = ref<number | null>(null)
+const splitOffset = ref('')
 
 async function loadReader(tocNodeId?: number) {
   if (!props.bookId) return
@@ -34,6 +39,49 @@ async function loadReader(tocNodeId?: number) {
 async function markUnderstood(sentence: ReaderSentence) {
   const updated = await updateSentenceStatus(sentence.id, 'understood')
   sentence.status = updated.status
+}
+
+function toggleSentenceSelection(sentenceId: number, checked: boolean) {
+  if (checked) {
+    selectedSentenceIds.value = [...new Set([...selectedSentenceIds.value, sentenceId])]
+    return
+  }
+  selectedSentenceIds.value = selectedSentenceIds.value.filter((id) => id !== sentenceId)
+}
+
+function toggleSentenceSelectionFromEvent(sentenceId: number, event: Event) {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    toggleSentenceSelection(sentenceId, target.checked)
+  }
+}
+
+async function mergeSelectedSentences() {
+  if (selectedSentenceIds.value.length < 2 || !view.value) {
+    errorMessage.value = '请至少选择两个连续句子'
+    return
+  }
+  errorMessage.value = ''
+  await mergeSentences(selectedSentenceIds.value)
+  selectedSentenceIds.value = []
+  await loadReader(view.value.active_toc_node_id)
+}
+
+async function splitActiveSentence() {
+  if (!splitSentenceId.value || !view.value) {
+    errorMessage.value = '请先选择要拆分的句子'
+    return
+  }
+  const parsedOffset = Number.parseInt(splitOffset.value, 10)
+  if (!Number.isFinite(parsedOffset) || parsedOffset <= 0) {
+    errorMessage.value = '请输入合法拆分 offset'
+    return
+  }
+  errorMessage.value = ''
+  await splitSentence(splitSentenceId.value, parsedOffset)
+  splitSentenceId.value = null
+  splitOffset.value = ''
+  await loadReader(view.value.active_toc_node_id)
 }
 
 onMounted(() => loadReader())
@@ -80,6 +128,19 @@ watch(
           </span>
         </nav>
 
+        <div class="correction-toolbar">
+          <button data-test="merge-selected" type="button" @click="mergeSelectedSentences">
+            合并选中句子
+          </button>
+          <label>
+            <span>拆分 offset</span>
+            <input v-model="splitOffset" data-test="split-offset" inputmode="numeric" />
+          </label>
+          <button class="secondary-button" data-test="split-active" type="button" @click="splitActiveSentence">
+            拆分当前句子
+          </button>
+        </div>
+
         <section
           v-for="paragraph in view.paragraphs"
           :key="paragraph.id"
@@ -92,7 +153,21 @@ watch(
             class="reader-sentence"
             :data-status="sentence.status"
           >
+            <input
+              type="checkbox"
+              :checked="selectedSentenceIds.includes(sentence.id)"
+              :data-test="`select-sentence-${sentence.id}`"
+              @change="toggleSentenceSelectionFromEvent(sentence.id, $event)"
+            />
             <span>{{ sentence.text }}</span>
+            <button
+              class="secondary-button"
+              :data-test="`split-target-${sentence.id}`"
+              type="button"
+              @click="splitSentenceId = sentence.id"
+            >
+              设为拆分
+            </button>
             <button
               class="secondary-button"
               :data-test="`sentence-status-${sentence.id}`"

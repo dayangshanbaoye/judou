@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getReaderView = vi.fn()
 const updateSentenceStatus = vi.fn()
+const mergeSentences = vi.fn()
+const splitSentence = vi.fn()
 
 vi.mock('../api/reader', () => ({
   getReaderView: (...args: unknown[]) => getReaderView(...args),
   updateSentenceStatus: (...args: unknown[]) => updateSentenceStatus(...args),
+  mergeSentences: (...args: unknown[]) => mergeSentences(...args),
+  splitSentence: (...args: unknown[]) => splitSentence(...args),
 }))
 
 import ReaderPanel from '../components/ReaderPanel.vue'
@@ -50,6 +54,13 @@ const introductionView = {
           text: 'There is, perhaps, no more abused phrase.',
           status: 'unread',
         },
+        {
+          id: 1002,
+          paragraph_id: 101,
+          order_index: 1,
+          text: 'Creativity can be practiced.',
+          status: 'unread',
+        },
       ],
     },
   ],
@@ -82,11 +93,36 @@ describe('ReaderPanel', () => {
   beforeEach(() => {
     getReaderView.mockReset()
     updateSentenceStatus.mockReset()
+    mergeSentences.mockReset()
+    splitSentence.mockReset()
     getReaderView.mockResolvedValue(introductionView)
     updateSentenceStatus.mockResolvedValue({
       ...introductionView.paragraphs[0].sentences[0],
       status: 'understood',
     })
+    mergeSentences.mockResolvedValue({
+      id: 1001,
+      paragraph_id: 101,
+      order_index: 0,
+      text: 'There is, perhaps, no more abused phrase.Creativity can be practiced.',
+      status: 'flagged',
+    })
+    splitSentence.mockResolvedValue([
+      {
+        id: 1001,
+        paragraph_id: 101,
+        order_index: 0,
+        text: 'There is,',
+        status: 'flagged',
+      },
+      {
+        id: 1003,
+        paragraph_id: 101,
+        order_index: 1,
+        text: ' perhaps, no more abused phrase.',
+        status: 'flagged',
+      },
+    ])
   })
 
   it('renders toc, breadcrumb, context, and sentence stream', async () => {
@@ -122,6 +158,32 @@ describe('ReaderPanel', () => {
 
     expect(updateSentenceStatus).toHaveBeenCalledWith(1001, 'understood')
     expect(wrapper.text()).toContain('understood')
+  })
+
+  it('selects two sentences and merges them', async () => {
+    const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
+    await flushPromises()
+
+    await wrapper.get('[data-test="select-sentence-1001"]').setValue(true)
+    await wrapper.get('[data-test="select-sentence-1002"]').setValue(true)
+    await wrapper.get('[data-test="merge-selected"]').trigger('click')
+    await flushPromises()
+
+    expect(mergeSentences).toHaveBeenCalledWith([1001, 1002])
+    expect(getReaderView).toHaveBeenLastCalledWith(7, 10)
+  })
+
+  it('splits the active sentence at the given offset', async () => {
+    const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
+    await flushPromises()
+
+    await wrapper.get('[data-test="split-target-1001"]').trigger('click')
+    await wrapper.get('[data-test="split-offset"]').setValue('9')
+    await wrapper.get('[data-test="split-active"]').trigger('click')
+    await flushPromises()
+
+    expect(splitSentence).toHaveBeenCalledWith(1001, 9)
+    expect(getReaderView).toHaveBeenLastCalledWith(7, 10)
   })
 })
 

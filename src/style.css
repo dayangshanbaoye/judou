@@ -178,6 +178,28 @@ button {
   overflow: auto;
 }
 
+.correction-toolbar {
+  align-items: end;
+  background: var(--bg-subtle);
+  border-radius: var(--r-lg);
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: max-content minmax(120px, 1fr) max-content;
+  padding: var(--sp-3);
+}
+
+.correction-toolbar label {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.correction-toolbar input {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font: inherit;
+  padding: var(--sp-2);
+}
+
 .reader-paragraph {
   background: var(--bg-subtle);
   border-radius: var(--r-lg);
@@ -190,6 +212,10 @@ button {
   gap: var(--sp-3);
   justify-content: space-between;
   line-height: 1.7;
+}
+
+.reader-sentence input[type='checkbox'] {
+  margin-top: 0.45em;
 }
 
 .reader-sentence[data-status='understood'] {

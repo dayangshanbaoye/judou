@@ -219,6 +219,24 @@ pub async fn update_sentence_status(
     repo.update_sentence_status(sentence_id, &status)
 }
 
+#[tauri::command]
+pub async fn merge_sentences(app: AppHandle, sentence_ids: Vec<i64>) -> Result<ReaderSentence> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.merge_sentences(&sentence_ids)
+}
+
+#[tauri::command]
+pub async fn split_sentence(
+    app: AppHandle,
+    sentence_id: i64,
+    split_offset: usize,
+) -> Result<Vec<ReaderSentence>> {
+    let connection = rusqlite::Connection::open(app_database_path(&app)?)?;
+    let repo = crate::repo::SqliteRepo::new(&connection);
+    repo.split_sentence(sentence_id, split_offset)
+}
+
 pub fn build_import_job_response() -> ImportJobResponse {
     ImportJobResponse {
         job_id: Uuid::new_v4().to_string(),
