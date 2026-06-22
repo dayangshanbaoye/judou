@@ -161,6 +161,48 @@ watch(
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     <p v-if="successMessage" class="success">{{ successMessage }}</p>
 
+    <div v-if="view" class="reader-controls" data-test="reader-controls">
+      <nav class="breadcrumb" aria-label="breadcrumb">
+        <span v-for="(crumb, index) in view.breadcrumb" :key="crumb.id">
+          <span v-if="index"> / </span>{{ crumb.title }}
+        </span>
+      </nav>
+
+      <div class="mode-tabs" role="group" aria-label="阅读模式">
+        <button
+          :class="{ active: readerMode === 'continuous' }"
+          data-test="mode-continuous"
+          type="button"
+          @click="setReaderMode('continuous')"
+        >
+          连续阅读
+        </button>
+        <button
+          :class="{ active: readerMode === 'focus' }"
+          data-test="mode-focus"
+          type="button"
+          @click="setReaderMode('focus')"
+        >
+          逐句精读
+        </button>
+        <button
+          :class="{ active: readerMode === 'quiz' }"
+          data-test="mode-quiz"
+          type="button"
+          @click="setReaderMode('quiz')"
+        >
+          自测模式
+        </button>
+      </div>
+
+      <div class="correction-toolbar">
+        <button data-test="merge-selected" type="button" @click="mergeSelectedSentences">
+          合并选中句子
+        </button>
+        <span class="toolbar-hint">勾选两个或更多连续句子后合并；系统会写入处理台账。</span>
+      </div>
+    </div>
+
     <div v-if="view" class="reader-layout">
       <aside class="reader-toc">
         <h3>{{ view.book_title }}</h3>
@@ -180,46 +222,6 @@ watch(
       </aside>
 
       <article class="reader-main">
-        <nav class="breadcrumb" aria-label="breadcrumb">
-          <span v-for="(crumb, index) in view.breadcrumb" :key="crumb.id">
-            <span v-if="index"> / </span>{{ crumb.title }}
-          </span>
-        </nav>
-
-        <div class="mode-tabs" role="group" aria-label="阅读模式">
-          <button
-            :class="{ active: readerMode === 'continuous' }"
-            data-test="mode-continuous"
-            type="button"
-            @click="setReaderMode('continuous')"
-          >
-            连续阅读
-          </button>
-          <button
-            :class="{ active: readerMode === 'focus' }"
-            data-test="mode-focus"
-            type="button"
-            @click="setReaderMode('focus')"
-          >
-            逐句精读
-          </button>
-          <button
-            :class="{ active: readerMode === 'quiz' }"
-            data-test="mode-quiz"
-            type="button"
-            @click="setReaderMode('quiz')"
-          >
-            自测模式
-          </button>
-        </div>
-
-        <div class="correction-toolbar">
-          <button data-test="merge-selected" type="button" @click="mergeSelectedSentences">
-            合并选中句子
-          </button>
-          <span class="toolbar-hint">勾选两个或更多连续句子后合并；系统会写入处理台账。</span>
-        </div>
-
         <div v-if="splitTarget" class="split-panel" data-test="split-panel">
           <div>
             <p class="panel-label">正在拆分</p>

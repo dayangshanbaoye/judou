@@ -164,6 +164,15 @@ button {
   gap: var(--sp-4);
 }
 
+.reader-controls {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+
 .reader-empty,
 .context-line,
 .breadcrumb {

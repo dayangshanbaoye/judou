@@ -219,6 +219,14 @@ describe('ReaderPanel', () => {
     expect(wrapper.text()).toContain('Creativity can be practiced.')
   })
 
+  it('keeps reader mode controls outside the scrollable sentence pane', async () => {
+    const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="reader-controls"]').find('[data-test="mode-focus"]').exists()).toBe(true)
+    expect(wrapper.get('.reader-main').find('[data-test="mode-focus"]').exists()).toBe(false)
+  })
+
   it('hides the active sentence in self-test mode until revealed', async () => {
     const wrapper = mount(ReaderPanel, { props: { bookId: 7 } })
     await flushPromises()
